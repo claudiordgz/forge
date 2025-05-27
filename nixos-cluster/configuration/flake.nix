@@ -5,6 +5,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixos-generators.url = "github:nix-community/nixos-generators";
     flake-utils.url = "github:numtide/flake-utils";
+    sops-nix.url = "github:Mic92/sops-nix";
   };
 
   outputs = { self, nixpkgs, flake-utils, ... }:

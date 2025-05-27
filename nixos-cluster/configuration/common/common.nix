@@ -1,7 +1,9 @@
-{ config, pkgs, ... }:
+{ config, pkgs, inputs, ... }:
 
-{
-  imports = [];
+let
+  host = config.networking.hostName;
+in {
+  imports = [ inputs.sops-nix.nixosModules.sops ];
 
   networking.domain = "locallier.com";
 
@@ -9,11 +11,15 @@
   services.openssh.settings.PasswordAuthentication = false;
   services.openssh.settings.PermitRootLogin = "no";
 
+  sops.secrets.adminKey = {
+    key = "sshKeys.${host}.adminuser";
+    sopsFile = ../secrets.yaml;
+  };
+
   users.users.admin = {
     isNormalUser = true;
     extraGroups = [ "wheel" "podman" ];
-    openssh.authorizedKeys.keys = [
-    ];
+    openssh.authorizedKeys.keyFiles = [ config.sops.secrets.adminKey.path ];
   };
 
   virtualisation.podman = {
