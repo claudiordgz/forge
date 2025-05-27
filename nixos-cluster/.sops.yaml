@@ -1,4 +1,5 @@
 creation_rules:
   - path_regex: secrets.yaml
-    age: age1h42rwfxenzhfvrf8ryv328s6hr5m8q0dgxd9yj77w8d94mpkzaxsjxg3x7
+    age: >-
+      age15sv0kx64ht72eepgan98d9hhrdpj95q2u9dnfs3jgryatyjha9csj009rs
     encrypted_regex: '^(data|stringData|.*)$'
