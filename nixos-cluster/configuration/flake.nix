@@ -21,15 +21,27 @@
       nixosConfigurations = {
         vega = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
-          modules = [ ./common/common.nix ./hosts/vega/configuration.nix ];
+          modules = [ 
+            ./common/common.nix 
+            ./hosts/vega/configuration.nix 
+            sops-nix.nixosModules.sops
+          ];
         };
         arcturus = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
-          modules = [ ./common/common.nix ./hosts/arcturus/configuration.nix ];
+          modules = [ 
+            ./common/common.nix 
+            ./hosts/arcturus/configuration.nix 
+            sops-nix.nixosModules.sops
+          ];
         };
         rigel = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
-          modules = [ ./common/common.nix ./hosts/rigel/configuration.nix ];
+          modules = [ 
+            ./common/common.nix 
+            ./hosts/rigel/configuration.nix 
+            sops-nix.nixosModules.sops
+          ];
         };
       };
     };

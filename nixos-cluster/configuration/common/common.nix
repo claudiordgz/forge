@@ -1,10 +1,8 @@
-{ config, pkgs, inputs, ... }:
+{ config, pkgs, ... }:
 
 let
   host = config.networking.hostName;
 in {
-  imports = [ inputs.sops-nix.nixosModules.sops ];
-
   networking.domain = "locallier.com";
 
   services.openssh.enable = true;
