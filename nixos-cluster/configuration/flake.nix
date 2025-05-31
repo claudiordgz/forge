@@ -8,7 +8,7 @@
     sops-nix.url = "github:Mic92/sops-nix";
   };
 
-  outputs = { self, nixpkgs, flake-utils, ... }:
+  outputs = { self, nixpkgs, flake-utils, sops-nix, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
@@ -24,7 +24,7 @@
           modules = [ 
             ./common/common.nix 
             ./hosts/vega/configuration.nix 
-            inputs.sops-nix.nixosModules.sops
+            sops-nix.nixosModules.sops
           ];
         };
         arcturus = nixpkgs.lib.nixosSystem {
@@ -32,7 +32,7 @@
           modules = [ 
             ./common/common.nix 
             ./hosts/arcturus/configuration.nix 
-            inputs.sops-nix.nixosModules.sops
+            sops-nix.nixosModules.sops
           ];
         };
         rigel = nixpkgs.lib.nixosSystem {
@@ -40,7 +40,7 @@
           modules = [ 
             ./common/common.nix 
             ./hosts/rigel/configuration.nix 
-            inputs.sops-nix.nixosModules.sops
+            sops-nix.nixosModules.sops
           ];
         };
       };
