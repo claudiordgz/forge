@@ -36,7 +36,11 @@ in {
     ethtool iperf3 speedtest-cli
     parted lvm2 btrfs-progs nvme-cli
     glxinfo mesa-demos pciutils
-    htop curl git vim tmux
+    htop curl git vim tmux jq
+  ];
+  
+  nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (pkgs.lib.getName pkg) [
+    "1password-cli"
   ];
 
   hardware.nvidia-container-toolkit.enable = true;
