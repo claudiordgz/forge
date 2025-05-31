@@ -24,7 +24,7 @@
           modules = [ 
             ./common/common.nix 
             ./hosts/vega/configuration.nix 
-            sops-nix.nixosModules.sops
+            inputs.sops-nix.nixosModules.sops
           ];
         };
         arcturus = nixpkgs.lib.nixosSystem {
@@ -32,7 +32,7 @@
           modules = [ 
             ./common/common.nix 
             ./hosts/arcturus/configuration.nix 
-            sops-nix.nixosModules.sops
+            inputs.sops-nix.nixosModules.sops
           ];
         };
         rigel = nixpkgs.lib.nixosSystem {
@@ -40,7 +40,7 @@
           modules = [ 
             ./common/common.nix 
             ./hosts/rigel/configuration.nix 
-            sops-nix.nixosModules.sops
+            inputs.sops-nix.nixosModules.sops
           ];
         };
       };
