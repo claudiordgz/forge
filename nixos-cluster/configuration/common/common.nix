@@ -11,7 +11,7 @@ in {
 
   sops.secrets.adminKey = {
     key = "sshKeys.${host}.adminuser";
-    sopsFile = ../secrets.yaml;
+    sopsFile = ../secrets-encrypted.yaml;
   };
 
   users.users.admin = {
