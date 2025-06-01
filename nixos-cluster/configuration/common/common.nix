@@ -16,11 +16,19 @@ in {
   services.openssh.settings.PasswordAuthentication = false;
   services.openssh.settings.PermitRootLogin = "no";
 
-  sops.secrets.adminKey = {
-    key = "sshKeys.${host}.adminuser";
-    sopsFile = ../../secrets-encrypted.yaml;
+  sops = {
+    defaultSopsFile = "../../secrets.yaml";
+    age = {
+      keyFile = "/root/.config/sops/age/keys.txt";
+      generateKey = false;
+    };
+    secrets = {
+      adminKey = {
+        key = "sshKeys.${host}.adminuser";
+        sopsFile = ../../secrets-encrypted.yaml;
+      };
+    };
   };
-  sops.age.keyFile = "/root/.config/sops/age/keys.txt";
 
   users.users.admin = {
     isNormalUser = true;
@@ -38,6 +46,7 @@ in {
     podman
     podman-compose
     opentofu
+    age
     kubectl
     ethtool iperf3 speedtest-cli
     parted lvm2 btrfs-progs nvme-cli
