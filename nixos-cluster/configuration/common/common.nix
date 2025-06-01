@@ -23,6 +23,7 @@ in {
       keyFile = "/root/.config/sops/age/keys.txt";
       generateKey = false;
     };
+    secrets."sshKeys.${config.networking.hostName}.adminuser" = {};
   };
 
   users.users.admin = {
