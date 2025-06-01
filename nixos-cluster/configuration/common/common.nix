@@ -45,6 +45,15 @@ in {
     _1password-cli
   ];
 
+  services.xserver.videoDrivers = [ "nvidia" ];
+
+  hardware.nvidia = {
+    modesetting.enable = true;
+    powerManagement.enable = false;
+    open = false; # set to true if you want open kernel module (requires newer GPUs)
+    package = config.boot.kernelPackages.nvidiaPackages.stable;
+  };
+
   hardware.nvidia-container-toolkit.enable = true;
 
   time.timeZone = "America/Los_Angeles";
