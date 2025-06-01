@@ -20,6 +20,7 @@ in {
     key = "sshKeys.${host}.adminuser";
     sopsFile = ../../secrets-encrypted.yaml;
   };
+  sops.age.keyFile = "/root/.config/sops/age/keys.txt";
 
   users.users.admin = {
     isNormalUser = true;
