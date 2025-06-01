@@ -19,14 +19,11 @@ in {
   sops = {
     validateSopsFiles = false;
     defaultSopsFile = "/root/forge/nixos-cluster/secrets-encrypted.yaml";
-    age = {
-      keyFile = "/root/.config/sops/age/keys.txt";
-      generateKey = false;
-    };
+    age.keyFile = "/root/.config/sops/age/keys.txt";
     secrets."sshKeys.${host}.adminuser" = {};
   };
 
-  users.users.root.openssh.authorizedKeys.keys = [
+  users.users.root.openssh.authorizedKeys.keyFiles = [
     config.sops.secrets."sshKeys.${host}.adminuser".path
   ];
 
