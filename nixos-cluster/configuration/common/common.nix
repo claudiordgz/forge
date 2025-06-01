@@ -17,6 +17,7 @@ in {
   services.openssh.settings.PermitRootLogin = "no";
 
   sops = {
+    validateSopsFiles = false;
     defaultSopsFile = "/root/forge/nixos-cluster/secrets-encrypted.yaml";
     age = {
       keyFile = "/root/.config/sops/age/keys.txt";
