@@ -23,7 +23,7 @@ in {
       generateKey = false;
     };
     secrets."sshKeys.${config.networking.hostName}.adminuser" = {
-      path = "/etc/ssh/keys/${config.networking.hostName}-adminuser";
+      path = "root/.ssh/${config.networking.hostName}-adminuser";
     };
   };
 
