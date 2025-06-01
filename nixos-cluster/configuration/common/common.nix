@@ -14,10 +14,10 @@ in {
 
   services.openssh.enable = true;
   services.openssh.settings.PasswordAuthentication = false;
+  services.openssh.settings.KbdInteractiveAuthentication = false;
   services.openssh.settings.PermitRootLogin = "no";
 
   sops = {
-    validateSopsFiles = false;
     defaultSopsFormat = "yaml";
     defaultSopsFile = "/root/forge/nixos-cluster/secrets-encrypted.yaml";
     age.keyFile = "/root/.config/sops/age/keys.txt";
