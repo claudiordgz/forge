@@ -23,15 +23,12 @@ in {
       keyFile = "/root/.config/sops/age/keys.txt";
       generateKey = false;
     };
-    secrets."sshKeys.${config.networking.hostName}.adminuser" = {
-      path = "/root/.ssh/${config.networking.hostName}-adminuser";
-    };
   };
 
   users.users.admin = {
     isNormalUser = true;
     extraGroups = [ "wheel" "podman" ];
-    openssh.authorizedKeys.keyFiles = [ config.sops.secrets."sshKeys.${config.networking.hostName}.adminuser".path ];
+    openssh.authorizedKeys.keyFiles = [ config.sops.secrets."sshKeys.${config.networking.hostName}.adminuser" ];
   };
 
   virtualisation.podman = {
@@ -50,7 +47,7 @@ in {
     parted lvm2 btrfs-progs nvme-cli
     glxinfo mesa-demos pciutils
     htop curl git vim tmux jq
-    _1password-cli
+    _1password-cli yq
   ];
 
   services.xserver.videoDrivers = [ "nvidia" ];
