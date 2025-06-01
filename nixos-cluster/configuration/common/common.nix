@@ -1,7 +1,7 @@
 { config, pkgs, ... }:
 
 let
-  host = config.networking.hostName;
+  host = host;
 in {
   networking.domain = "locallier.com";
 
@@ -23,13 +23,15 @@ in {
       keyFile = "/root/.config/sops/age/keys.txt";
       generateKey = false;
     };
-    secrets."sshKeys.${config.networking.hostName}.adminuser" = {};
+    secrets."sshKeys.${host}.adminuser" = {};
   };
 
   users.users.admin = {
     isNormalUser = true;
     extraGroups = [ "wheel" "podman" ];
-    openssh.authorizedKeys.keyFiles = [ config.sops.secrets."sshKeys.${config.networking.hostName}.adminuser" ];
+    openssh.authorizedKeys.keyFiles = [ 
+      config.sops.secrets."sshKeys.${host}.adminuser".path
+    ];
   };
 
   virtualisation.podman = {
