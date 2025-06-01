@@ -26,13 +26,9 @@ in {
     secrets."sshKeys.${host}.adminuser" = {};
   };
 
-  users.users.admin = {
-    isNormalUser = true;
-    extraGroups = [ "wheel" "podman" ];
-    openssh.authorizedKeys.keyFiles = [ 
-      config.sops.secrets."sshKeys.${host}.adminuser".path
-    ];
-  };
+  users.users.root.openssh.authorizedKeys.keys = [
+    config.sops.secrets."sshKeys.${host}.adminuser".path
+  ];
 
   virtualisation.podman = {
     enable = true;
