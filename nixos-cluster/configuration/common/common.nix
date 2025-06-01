@@ -14,24 +14,8 @@ in {
 
   services.openssh.enable = true;
   services.openssh.settings.PasswordAuthentication = false;
+  services.openssh.settings.KbdInteractiveAuthentication = false;
   services.openssh.settings.PermitRootLogin = "no";
-
-  sops = {
-    defaultSopsFile = "/root/forge/nixos-cluster/secrets-encrypted.yaml";
-    age = {
-      keyFile = "/root/.config/sops/age/keys.txt";
-      generateKey = false;
-    };
-    secrets."sshKeys.${config.networking.hostName}.adminuser" = {
-      path = "/root/.ssh/${config.networking.hostName}-adminuser";
-    };
-  };
-
-  users.users.admin = {
-    isNormalUser = true;
-    extraGroups = [ "wheel" "podman" ];
-    openssh.authorizedKeys.keyFiles = [ config.sops.secrets."sshKeys.${config.networking.hostName}.adminuser".path ];
-  };
 
   virtualisation.podman = {
     enable = true;
@@ -49,7 +33,7 @@ in {
     parted lvm2 btrfs-progs nvme-cli
     glxinfo mesa-demos pciutils
     htop curl git vim tmux jq
-    _1password-cli
+    _1password-cli yq
   ];
 
   services.xserver.videoDrivers = [ "nvidia" ];

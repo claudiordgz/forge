@@ -23,6 +23,8 @@
           system = "x86_64-linux";
           modules = [ 
             ./common/common.nix 
+            ./common/sops.nix
+            ./common/users.nix
             ./hosts/vega/configuration.nix 
             sops-nix.nixosModules.sops
           ];
@@ -31,6 +33,8 @@
           system = "x86_64-linux";
           modules = [ 
             ./common/common.nix 
+            ./common/sops.nix
+            ./common/users.nix
             ./hosts/arcturus/configuration.nix 
             sops-nix.nixosModules.sops
           ];
@@ -38,7 +42,9 @@
         rigel = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           modules = [ 
-            ./common/common.nix 
+            ./common/common.nix
+            ./common/sops.nix
+            ./common/users.nix
             ./hosts/rigel/configuration.nix 
             sops-nix.nixosModules.sops
           ];
