@@ -16,20 +16,6 @@ in {
   services.openssh.settings.PasswordAuthentication = false;
   services.openssh.settings.PermitRootLogin = "no";
 
-  sops = {
-    defaultSopsFile = "../../secrets.yaml";
-    age = {
-      keyFile = "/root/.config/sops/age/keys.txt";
-      generateKey = false;
-    };
-    secrets = {
-      adminKey = {
-        key = "sshKeys.${host}.adminuser";
-        sopsFile = ../../secrets-encrypted.yaml;
-      };
-    };
-  };
-
   users.users.admin = {
     isNormalUser = true;
     extraGroups = [ "wheel" "podman" ];
