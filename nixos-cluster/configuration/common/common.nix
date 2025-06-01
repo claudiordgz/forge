@@ -1,7 +1,7 @@
 { config, pkgs, ... }:
 
 let
-  host = host;
+  host = config.networking.hostName;
 in {
   networking.domain = "locallier.com";
 
