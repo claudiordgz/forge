@@ -2,7 +2,7 @@
 
 let
   host = config.networking.hostName;
-  secretPath = "sshKeys.${host}.adminuser";
+  secretPath = "sshKeys/${host}/adminuser";
 in
 {
   sops.secrets.${secretPath} = {
