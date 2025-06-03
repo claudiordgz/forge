@@ -18,7 +18,7 @@ in
     isNormalUser = true;
     extraGroups = [ "wheel" "networkmanager" "podman" ];
     openssh.authorizedKeys.keys = [
-      
+      (builtins.readFile "/home/admin/.ssh/${host}-adminuser.pub")
     ];
   };
 }
