@@ -5,7 +5,7 @@ let
 in
 {
   sops.secrets."sshKeys/${host}/adminuser" = {
-    neededForUsers = true
+    neededForUsers = true;
     path = "/etc/ssh/keys/vega-adminuser";
     mode = "0444";
   };
