@@ -7,13 +7,12 @@ in
 {
   sops.secrets.${secretPath} = {
     neededForUsers = true;
-    path = "/etc/ssh/keys/${host}-adminuser";
-    mode = "0444";
   };
 
   users.mutableUsers = false;
-
-  users.users.root.openssh.authorizedKeys.keyFiles = [
+  systemd.services.sshd.wantedBy = lib.mkForce [ "multi-user.target" ];
+  services.sshd.enable = true;  
+  users.users.root.openssh.authorizedKeys.keys = [
     config.sops.secrets.${secretPath}.path
   ];
 }
