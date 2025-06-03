@@ -7,7 +7,9 @@ in
 {
   sops.secrets.${secretPath} = {
     neededForUsers = true;
-    path = "/root/.ssh/${host}-adminuser.pub";
+    path = "/home/admin/.ssh/${host}-adminuser.pub";
+    owner = config.users.users.admin.name;
+    inherit (config.users.users.admin) group;
   };
 
   systemd.services.sshd.wantedBy = lib.mkForce [ "multi-user.target" ];
@@ -16,6 +18,7 @@ in
     isNormalUser = true;
     extraGroups = [ "wheel" "networkmanager" "podman" ];
     openssh.authorizedKeys.keys = [
+      (builtins.readFile /home/admin/.ssh/${host}-adminuser.pub)
     ];
   };
 }
