@@ -7,7 +7,7 @@ in
 {
   sops.secrets.${secretPath} = {
     neededForUsers = true;
-    path = "/home/admin/.ssh/adminuser.pub";
+    path = "/home/admin/.ssh/${host}-adminuser.pub";
     owner = config.users.users.admin.name;
     inherit (config.users.users.admin) group;
   };
@@ -18,7 +18,7 @@ in
     isNormalUser = true;
     extraGroups = [ "wheel" "networkmanager" "podman" ];
     openssh.authorizedKeys.keys = [
-      (builtins.readFile ./keys/adminuser.pub)
+      
     ];
   };
 }
