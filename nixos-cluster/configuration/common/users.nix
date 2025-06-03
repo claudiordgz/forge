@@ -7,7 +7,7 @@ in
 {
   sops.secrets.${secretPath} = {
     neededForUsers = true;
-    path = "/root/.ssh/${host}-adminuser.pub"
+    path = "/root/.ssh/${host}-adminuser.pub";
   };
 
   users.mutableUsers = false;
