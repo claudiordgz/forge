@@ -2,17 +2,18 @@
 
 let
   host = config.networking.hostName;
+  secretPath = "sshKeys.${host}.adminuser";
 in
 {
-  sops.secrets."sshKeys/${host}/adminuser" = {
+  sops.secrets.${secretPath} = {
     neededForUsers = true;
-    path = "/etc/ssh/keys/vega-adminuser";
+    path = "/etc/ssh/keys/${host}-adminuser";
     mode = "0444";
   };
 
   users.mutableUsers = false;
 
   users.users.root.openssh.authorizedKeys.keyFiles = [
-    config.sops.secrets."sshKeys/${host}/adminuser".path
+    config.sops.secrets.${secretPath}.path
   ];
 }
