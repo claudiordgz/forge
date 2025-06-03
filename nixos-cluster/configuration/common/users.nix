@@ -10,7 +10,6 @@ in
     path = "/root/.ssh/${host}-adminuser.pub";
   };
 
-  users.mutableUsers = false;
   systemd.services.sshd.wantedBy = lib.mkForce [ "multi-user.target" ];
   services.sshd.enable = true;  
   users.users.admin = {
