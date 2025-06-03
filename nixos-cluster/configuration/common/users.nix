@@ -13,7 +13,7 @@ in
   users.mutableUsers = false;
   systemd.services.sshd.wantedBy = lib.mkForce [ "multi-user.target" ];
   services.sshd.enable = true;  
-  users.users.admin {
+  users.users.admin = {
     isNormalUser = true;
     extraGroups = [ "wheel" "networkmanager" "podman" ];
     openssh.authorizedKeys.keys = [
