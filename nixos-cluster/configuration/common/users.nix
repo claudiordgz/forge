@@ -18,7 +18,7 @@ in
     isNormalUser = true;
     extraGroups = [ "wheel" "networkmanager" "podman" ];
     openssh.authorizedKeys.keys = [
-      config.sops.secrets.${secretPath}.raw
+      config.sops.secrets.${secretPath}.path
     ];
   };
 }
