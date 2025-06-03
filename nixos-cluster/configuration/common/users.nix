@@ -18,5 +18,5 @@ in
     extraGroups = [ "wheel" "networkmanager" "podman" ];
     openssh.authorizedKeys.keys = [
     ];
-  }
+  };
 }
