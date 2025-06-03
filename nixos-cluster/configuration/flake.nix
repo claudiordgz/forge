@@ -9,46 +9,32 @@
   };
 
   outputs = { self, nixpkgs, flake-utils, sops-nix, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = import nixpkgs { inherit system; };
-      in {
-        devShells.default = pkgs.mkShell {
-          packages = with pkgs; [ git gnupg sops ];
-        };
-      }
-    ) // {
-      nixosConfigurations = {
-        vega = nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-          modules = [ 
-            ./common/common.nix 
-            ./common/sops.nix
-            ./common/users.nix
-            ./hosts/vega/configuration.nix 
-            sops-nix.nixosModules.sops
-          ];
-        };
-        arcturus = nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-          modules = [ 
-            ./common/common.nix 
-            ./common/sops.nix
-            ./common/users.nix
-            ./hosts/arcturus/configuration.nix 
-            sops-nix.nixosModules.sops
-          ];
-        };
-        rigel = nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-          modules = [ 
-            ./common/common.nix
-            ./common/sops.nix
-            ./common/users.nix
-            ./hosts/rigel/configuration.nix 
-            sops-nix.nixosModules.sops
-          ];
-        };
+
+  flake-utils.lib.eachDefaultSystem (
+    system:
+    let
+      pkgs = import nixpkgs { inherit system; };
+    in {
+      devShells.default = pkgs.mkShell {
+        packages = with pkgs; [ git gnupg sops ];
       };
+    }
+  ) // {
+    nixosConfigurations = let
+      mkHost = hostName: nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        modules = [
+          ./common/common.nix
+          ./common/sops.nix
+          ./common/users.nix
+          ./hosts/${hostName}/configuration.nix
+          sops-nix.nixosModules.sops
+        ];
+      };
+    in {
+      vega = mkHost "vega";
+      arcturus = mkHost "arcturus";
+      rigel = mkHost "rigel";
     };
+  };
 }
