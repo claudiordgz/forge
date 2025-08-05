@@ -1,8 +1,10 @@
-{ config, pkgs, lib, inputs, ... }:
+{ config, pkgs, lib, ... }:
 
 let
   host = config.networking.hostName;
-  pub  = "${inputs.keys}/${host}-adminuser.pub"; 
+  keysPath = builtins.filterSource (_path: _type: true) ./../keys;
+
+  pub = keysPath + "/${host}-adminuser.pub";
 in
 {
   services.openssh.enable = true;
@@ -24,6 +26,6 @@ in
   # Optional: catch missing pub early with a clear message
   assertions = [{
     assertion = builtins.pathExists pub;
-    message   = "Missing pubkey at: ${pub}";
+    message   = "Missing ${pub}. Did you run ./keys_and_config.sh ${host}?";
   }];
 }
