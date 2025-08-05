@@ -3,6 +3,7 @@
 
   inputs = {
     nixpkgs.url          = "github:NixOS/nixpkgs/nixos-24.05";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixos-generators.url = "github:nix-community/nixos-generators";
     flake-utils.url      = "github:numtide/flake-utils";
 
@@ -27,7 +28,7 @@
         mkHost = hostName: nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
 
-          specialArgs = { inherit inputs keys; };
+          specialArgs = { inherit inputs keys pkgsUnstable; };
 
           modules = [
             ./common/common.nix
