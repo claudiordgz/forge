@@ -12,7 +12,7 @@
     flake-utils.url      = "github:numtide/flake-utils";
 
     # path-based input that pulls ./keys (git-ignored)
-    inputs.keys = {
+    keys = {
       url   = "path:./keys?dir=.";
       flake = false;
     };
