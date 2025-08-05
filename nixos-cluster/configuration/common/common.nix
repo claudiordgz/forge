@@ -12,10 +12,17 @@ in {
 
   nixpkgs.config.allowUnfree = true;
 
+  hardware.opengl.enable = true;
+
   virtualisation.podman = {
     enable = true;
     dockerCompat = true;
     defaultNetwork.settings.dns_enabled = true;
+  };
+
+  virtualisation.docker = {
+    enable = true;
+    enableNvidia = true;
   };
 
   environment.systemPackages = with pkgs; [
