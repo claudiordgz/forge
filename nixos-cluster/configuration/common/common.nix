@@ -35,6 +35,9 @@ in {
     htop curl git vim tmux jq
     pkgsUnstable._1password-cli yq
     ookla-speedtest
+    cudatoolkit
+    cudaPackages.cudnn
+    cudaPackages.nccl
   ];
 
   hardware.graphics.enable = true;
@@ -53,11 +56,6 @@ in {
 
   hardware.nvidia-container-toolkit.enable = true;
 
-  environment.systemPackages = with pkgs; [
-    cudatoolkit
-    cudaPackages.cudnn
-    cudaPackages.nccl
-  ];
 
   time.timeZone = "America/Los_Angeles";
   i18n.defaultLocale = "en_US.UTF-8";
