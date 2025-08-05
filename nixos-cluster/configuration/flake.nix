@@ -52,7 +52,7 @@
 
             # Pass everything a module might need
             specialArgs = {
-              inherit inputs keys pkgsUnstable;
+              inherit inputs pkgsUnstable;
             };
 
             modules = [
