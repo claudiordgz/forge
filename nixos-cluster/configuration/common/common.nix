@@ -27,7 +27,6 @@ in {
       };
     };
     autoPrune.enable = true;
-    autoUpdate = true;
   };
 
   environment.systemPackages = with pkgs; [
