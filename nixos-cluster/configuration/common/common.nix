@@ -33,7 +33,7 @@ in {
     parted lvm2 btrfs-progs nvme-cli
     glxinfo mesa-demos pciutils
     htop curl git vim tmux jq
-    _1password-cli yq
+    pkgsUnstable._1password-cli yq
   ];
 
   services.xserver.videoDrivers = [ "nvidia" ];

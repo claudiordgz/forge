@@ -1,42 +1,63 @@
 {
   description = "NixOS Cluster";
 
+  ############################################################################
+  # 🔗 Inputs
+  ############################################################################
   inputs = {
     nixpkgs.url          = "github:NixOS/nixpkgs/nixos-24.05";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
+
     nixos-generators.url = "github:nix-community/nixos-generators";
     flake-utils.url      = "github:numtide/flake-utils";
 
+    # path-based input that pulls ./keys (git-ignored)
     keys = {
       url   = "path:./keys";
       flake = false;
     };
   };
 
+  ############################################################################
+  # 📦 Outputs
+  ############################################################################
   outputs = { self, nixpkgs, nixpkgs-unstable, flake-utils, keys, ... }@inputs:
+  let
+    # Helper to import the stable channel for any system
+    pkgsFor = system: import nixpkgs { inherit system; };
+  in
 
+  # ───── Dev shells for every supported system ──────────────────────────────
   flake-utils.lib.eachDefaultSystem (system:
-    let
-      pkgs = import nixpkgs { inherit system; };
-      pkgsUnstable   = import nixpkgs-unstable  { inherit system; };
-    in {
-      devShells.default = pkgs.mkShell { packages = with pkgs; [ git gnupg ]; };
+    {
+      devShells.default = (pkgsFor system).mkShell {
+        packages = with (pkgsFor system); [ git gnupg ];
+      };
     }
-  ) // {
+  ) //
 
+  # ───── NixOS host definitions ─────────────────────────────────────────────
+  {
     nixosConfigurations =
       let
-        mkHost = hostName: nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
+        # One shared import of the unstable channel (x86_64 only here)
+        pkgsUnstable = import nixpkgs-unstable { system = "x86_64-linux"; };
 
-          specialArgs = { inherit inputs keys pkgsUnstable; };
+        mkHost = hostName:
+          nixpkgs.lib.nixosSystem {
+            system = "x86_64-linux";
 
-          modules = [
-            ./common/common.nix
-            ./common/users.nix
-            (./hosts + "/${hostName}/configuration.nix")
-          ];
-        };
+            # Pass everything a module might need
+            specialArgs = {
+              inherit inputs keys pkgsUnstable;
+            };
+
+            modules = [
+              ./common/common.nix
+              ./common/users.nix
+              (./hosts + "/${hostName}/configuration.nix")
+            ];
+          };
       in {
         vega     = mkHost "vega";
         arcturus = mkHost "arcturus";
