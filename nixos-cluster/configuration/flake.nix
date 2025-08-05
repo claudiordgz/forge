@@ -21,7 +21,7 @@
   ############################################################################
   # 📦 Outputs
   ############################################################################
-  outputs = { self, nixpkgs, nixpkgs-unstable, flake-utils, keys, ... }@inputs:
+  outputs = { self, nixpkgs, nixpkgs-unstable, flake-utils, ... }@inputs:
   let
     # Helper to import the stable channel for any system
     pkgsFor = system: import nixpkgs { inherit system; };
