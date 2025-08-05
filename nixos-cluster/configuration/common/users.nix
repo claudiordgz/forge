@@ -15,7 +15,7 @@ in
         (builtins.readFile pub)
       ];
     };
-    root.openssh.authorizedKeys.keyFiles = [
+    root.openssh.authorizedKeys.keys = [
       (builtins.readFile pub)
     ];
   };
