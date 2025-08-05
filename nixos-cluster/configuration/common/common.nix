@@ -14,6 +14,11 @@ in {
 
   hardware.opengl.enable = true;
 
+  hardware.graphics = {
+    enable = true;
+    enable32Bit = true;
+  };
+
   virtualisation.podman = {
     enable = true;
     defaultNetwork.settings.dns_enabled = true;
