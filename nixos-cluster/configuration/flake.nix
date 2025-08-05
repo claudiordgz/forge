@@ -13,7 +13,7 @@
 
     # path-based input that pulls ./keys (git-ignored)
     keys = {
-      url   = "path:./keys";
+      url   = "path:./configuration/keys";
       flake = false;
     };
   };
