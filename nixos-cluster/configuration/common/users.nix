@@ -24,13 +24,14 @@ in
       KbdInteractiveAuthentication = false;
       AllowUsers = [ "admin" "intracom" "root" ];
       StrictModes = true;
-      extraConfig = ''
-        Match User intracom Address 10.10.10.0/24
-          AllowAgentForwarding no
-          AllowTcpForwarding no
-          X11Forwarding no
-      '';
     };
+    extraConfig = ''
+      Match User intracom Address 10.10.10.0/24
+        AllowAgentForwarding no
+        AllowTcpForwarding no
+        X11Forwarding no
+        PermitTTY yes
+    '';
   };
 
   users.users = {
