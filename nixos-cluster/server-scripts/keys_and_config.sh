@@ -27,13 +27,12 @@ if ! op whoami &>/dev/null; then
 fi
 
 # ─ 2 – Prepare ~/.ssh  (private keys) ───────────────────────────────────────
-mkdir -p ~/.ssh
-chmod 700 ~/.ssh
+sudo install -d -m 700 ~/.ssh
 
 # ─ 3 – Public-key dir  ../configuration/keys  (relative to this script) ────
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
-KEYS_DIR="${SCRIPT_DIR}/../configuration/keys"
-mkdir -p "$KEYS_DIR"
+KEYS_DIR="/var/lib/nixos-cluster/keys"
+sudo install -d -m 755 "$KEYS_DIR"
 
 # ─ 4 – Fetch keys from 1Password ────────────────────────────────────────────
 for KEY_TYPE in adminuser github intracom; do
@@ -88,21 +87,31 @@ echo "✅  SSH keys and config set up for '${NODE_NAME}'."
 # ─ 6 – Flake reminder (path:./configuration/keys) ───────────────────────────
 cat <<EOF
 
-📝  In flake.nix:
+📝  In flake.nix (recommended, outside the repo):
 
-  inputs.keys.url   = "path:./configuration/keys";
-  inputs.keys.flake = false;
+  inputs.keys = {
+    url   = "path:/var/lib/nixos-cluster/keys";
+    flake = false;
+  };
 
-and reference the key:
+🔐  Reference the key *contents* (not keyFiles):
 
-  users.users.admin.openssh.authorizedKeys.keyFiles = [
-    (inputs.keys + "/${NODE_NAME}-adminuser.pub")
+  users.users.admin.openssh.authorizedKeys.keys = [
+    (builtins.readFile (inputs.keys + "/${NODE_NAME}-adminuser.pub"))
   ];
-  users.users.root.openssh.authorizedKeys.keyFiles = [
-    (inputs.keys + "/${NODE_NAME}-adminuser.pub")
+  users.users.root.openssh.authorizedKeys.keys = [
+    (builtins.readFile (inputs.keys + "/${NODE_NAME}-adminuser.pub"))
   ];
 
-After changing any key file run:
-  sudo nixos-rebuild switch --update-input keys --flake .#${NODE_NAME}
+🔁  After changing any key file run:
+
+  nix flake update --update-input keys
+  sudo nixos-rebuild switch --flake .#${NODE_NAME}
+
+💡  If you prefer repo-local keys instead:
+  inputs.keys.url = "path:./configuration/keys"
+  # IMPORTANT: git-add the files so the flake can see them:
+  #   git add configuration/keys/*.pub
+  # (They can remain ignored in commits if you want.)
 
 EOF
