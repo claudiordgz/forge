@@ -14,39 +14,37 @@ nixos-cluster/
 │   ├── vega/configuration.nix
 │   ├── arcturus/configuration.nix
 │   └── rigel/configuration.nix
+├── configuration/
+│   └── keys/             # (git-ignored) public-key cache
+└── keys_and_config.sh    # helper script
+```
+## 🔑 SSH key helper
+
+Run the helper once per node to pull your SSH keys from **1Password** and lay
+everything out correctly:
+
+```bash
+./keys_and_config.sh vega
+./keys_and_config.sh arcturus
+./keys_and_config.sh rigel
+
+What it does:
+	1.	Ensures you’re signed in to https://my.1password.com via the op CLI.
+	2.	Downloads each key item (`<node>-adminuser`, `<node>-github`, `<node>-intracom`).
+	3.	Saves the private keys to `~/.ssh/`.
+	4.	Saves the matching public keys to `../configuration/keys/` (outside Git, world-readable).
+	5.	Generates a minimal ~/.ssh/config with host entries for GitHub, the node
+itself, and its two peers.
+
+Tip:  ./configuration/keys/ is already listed in .gitignore, so public
+keys never end up in the repo.
+
+🧪 Rebuilding a Host
+
+After you rotate or add keys, rebuild like this:
+
+```
+sudo nixos-rebuild switch --update-input keys --flake .#vega`
 ```
 
-# 🔐 Secrets with SOPS
-
-Secrets like SSH public keys are managed with sops and are committed to the repo in encrypted form.
-
-## 🔧 Setup age key (once per user/machine)
-
-`age-keygen -o ~/.config/sops/age/keys.txt`
-
-Then copy the public key output (starts with age1...) and insert it into .sops.yaml.
-
-## ✅ Decrypting a file
-
-```
-export SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt
-sops -d secrets.yaml
-```
-
-## 🔒 Encrypt and output to a separate file
-
-`sops --config .sops.yaml -e secrets.yaml > secrets-encrypted.yaml`
-
-## 🔓 Decrypt
-
-```
-export SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt
-sops -d secrets-encrypted.yaml
-```
-
-⸻
-
-# 🧪 Rebuilding a Host
-
-`sudo nixos-rebuild switch --flake .#vega`
-
+(Replace vega with arcturus or rigel as needed.)

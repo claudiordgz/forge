@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ config, pkgs, lib, inputs, keys, ... }:
 
 let
   host = config.networking.hostName;
@@ -11,11 +11,11 @@ in
       isNormalUser = true;
       extraGroups = [ "wheel" "networkmanager" "podman" ];
       openssh.authorizedKeys.keyFiles = [
-        ./keys/${host}-adminuser.pub
+        (keys + "/${host}-adminuser.pub")
       ];
     };
     root.openssh.authorizedKeys.keyFiles = [
-      ./keys/${host}-adminuser.pub
+      (inputs.keys + "/${host}-adminuser.pub")
     ];
   };
 }

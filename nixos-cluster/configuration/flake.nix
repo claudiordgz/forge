@@ -2,36 +2,43 @@
   description = "NixOS Cluster";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url          = "github:NixOS/nixpkgs/nixos-24.05";
     nixos-generators.url = "github:nix-community/nixos-generators";
-    flake-utils.url = "github:numtide/flake-utils";
+    flake-utils.url      = "github:numtide/flake-utils";
+
+    keys = {
+      url   = "path:./keys";
+      flake = false;
+    };
   };
 
-  outputs = { self, nixpkgs, flake-utils, ... }:
+  outputs = { self, nixpkgs, flake-utils, keys, ... }@inputs:
 
-  flake-utils.lib.eachDefaultSystem (
-    system:
+  flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = import nixpkgs { inherit system; };
     in {
-      devShells.default = pkgs.mkShell {
-        packages = with pkgs; [ git gnupg ];
-      };
+      devShells.default = pkgs.mkShell { packages = with pkgs; [ git gnupg ]; };
     }
   ) // {
-    nixosConfigurations = let
-      mkHost = hostName: nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        modules = [
-          ./common/common.nix
-          ./common/users.nix
-          ./hosts/${hostName}/configuration.nix
-        ];
+
+    nixosConfigurations =
+      let
+        mkHost = hostName: nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+
+          specialArgs = { inherit inputs keys; };
+
+          modules = [
+            ./common/common.nix
+            ./common/users.nix
+            (./hosts + "/${hostName}/configuration.nix")
+          ];
+        };
+      in {
+        vega     = mkHost "vega";
+        arcturus = mkHost "arcturus";
+        rigel    = mkHost "rigel";
       };
-    in {
-      vega = mkHost "vega";
-      arcturus = mkHost "arcturus";
-      rigel = mkHost "rigel";
-    };
   };
 }
