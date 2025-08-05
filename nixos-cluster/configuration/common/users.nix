@@ -5,11 +5,14 @@ let
   pub  = "${inputs.keys}/${host}-adminuser.pub"; 
 in
 {
-  services.openssh.enable = true;
-
-  # Belt-and-suspenders: ensure nobody else injects keyFiles
-  users.users.admin.openssh.authorizedKeys.keyFiles = lib.mkForce [ ];
-  users.users.root.openssh.authorizedKeys.keyFiles  = lib.mkForce [ ];
+  services.openssh = {
+    enable = true;
+    settings = {
+      PermitRootLogin = "prohibit-password";
+      PasswordAuthentication = false;
+      KbdInteractiveAuthentication = false;
+    };
+  };
 
   users.users = {
     admin = {
