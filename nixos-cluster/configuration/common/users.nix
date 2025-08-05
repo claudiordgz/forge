@@ -11,11 +11,11 @@ in
       isNormalUser = true;
       extraGroups = [ "wheel" "networkmanager" "podman" ];
       openssh.authorizedKeys.keyFiles = [
-        /etc/nixos/keys/${host}-adminuser.pub
+        ./keys/${host}-adminuser.pub
       ];
     };
     root.openssh.authorizedKeys.keyFiles = [
-      /etc/nixos/keys/${host}-adminuser.pub
+      ./keys/${host}-adminuser.pub
     ];
   };
 }
