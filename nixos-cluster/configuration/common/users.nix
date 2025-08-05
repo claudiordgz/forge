@@ -11,7 +11,7 @@ in
       isNormalUser = true;
       extraGroups = [ "wheel" "networkmanager" "podman" ];
       openssh.authorizedKeys.keyFiles = [
-        (keys + "/${host}-adminuser.pub")
+        (inputs.keys + "/${host}-adminuser.pub")
       ];
     };
     root.openssh.authorizedKeys.keyFiles = [
