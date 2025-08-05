@@ -20,12 +20,14 @@ in {
 
   virtualisation.podman = {
     enable = true;
-    defaultNetwork.settings.dns_enabled = true;
-  };
-
-  virtualisation.docker = {
-    enable = true;
-    enableNvidia = true;
+    dockerCompat = true;
+    defaultNetwork = {
+      settings = {
+        dns_enabled = true;
+      };
+    };
+    autoPrune.enable = true;
+    autoUpdate = true;
   };
 
   environment.systemPackages = with pkgs; [

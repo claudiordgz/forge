@@ -19,6 +19,11 @@ declare -A NODE_IP=(
 )
 [[ -z "${NODE_IP[$NODE_NAME]:-}" ]] && { echo "❌ Unknown node"; exit 1; }
 
+# ─ Require deps ──────────────────────────────────────────────────────────────
+for cmd in op jq ssh-keyscan awk sed; do
+  command -v "$cmd" >/dev/null || { echo "❌ Missing dependency: $cmd"; exit 1; }
+done
+
 # ─ 1 – Ensure 1Password session ─────────────────────────────────────────────
 if ! op whoami &>/dev/null; then
   echo "🔐  1Password CLI not signed in — signing in…"
@@ -34,24 +39,56 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 KEYS_DIR="/var/lib/nixos-cluster/keys"
 sudo install -d -m 755 "$KEYS_DIR"
 
-# ─ 4 – Fetch keys from 1Password ────────────────────────────────────────────
+# Helper: fetch a field from an item
+fetch_field () {
+  local item="$1" field="$2"
+  op item get "$item" --field "$field" --format json --reveal | jq -r '.value'
+}
+
+# ─ 4 – Fetch *this node’s* keys (priv & pub) ────────────────────────────────
 for KEY_TYPE in adminuser github intracom; do
   ITEM="${NODE_NAME}-${KEY_TYPE}"
   PRIV_PATH="$HOME/.ssh/${ITEM}"
   PUB_PATH="${KEYS_DIR}/${ITEM}.pub"
 
   echo "🔑  Fetching '${ITEM}'…"
-  op item get "$ITEM" --field "private key"  --format json --reveal \
-    | jq -r '.value' >"$PRIV_PATH"
+  fetch_field "$ITEM" "private key" >"$PRIV_PATH"
   chmod 600 "$PRIV_PATH"
-
-  op item get "$ITEM" --field "public key" --format json --reveal \
-    | jq -r '.value' >"$PUB_PATH"
+  fetch_field "$ITEM" "public key"  >"$PUB_PATH"
   chmod 644 "$PUB_PATH"
 done
 
-# ─ 5 – Generate ~/.ssh/config (outbound shortcuts) ──────────────────────────
-CONFIG=~/.ssh/config
+# ─ 5 – Fetch *peers’* intracom.pub (for server-side auth) ───────────────────
+for PEER in "${CLUSTER[@]}"; do
+  [[ $PEER == "$NODE_NAME" ]] && continue
+  ITEM="${PEER}-intracom"
+  PUB_PATH="${KEYS_DIR}/${ITEM}.pub"
+  echo "📥  Fetching peer pubkey '${ITEM}'…"
+  fetch_field "$ITEM" "public key" >"$PUB_PATH"
+  chmod 644 "$PUB_PATH"
+done
+
+# ─ 6 – Generate ssh_known_hosts for the cluster ─────────────────────────────
+KNOWN_HOSTS="${KEYS_DIR}/ssh_known_hosts"
+: >"$KNOWN_HOSTS"
+
+echo "🧾  Building ssh_known_hosts at ${KNOWN_HOSTS}…"
+for HOST in "${CLUSTER[@]}"; do
+  ip="${NODE_IP[$HOST]}"
+  # Prefer ed25519 host keys
+  if scan=$(ssh-keyscan -T 3 -t ed25519 "$ip" 2>/dev/null); then
+    # Convert "IP KEYTYPE KEY" -> "host,IP KEYTYPE KEY"
+    echo "$scan" \
+      | awk -v h="$HOST" -v ip="$ip" '{print h","ip" "$2" "$3}' >>"$KNOWN_HOSTS"
+  else
+    echo "⚠️   Could not ssh-keyscan $HOST ($ip). Skipping."
+  fi
+done
+sudo chmod 644 "$KNOWN_HOSTS"
+
+
+# ─ 7 – Generate ~/.ssh/config (outbound shortcuts) ──────────────────────────
+CONFIG="$HOME/.ssh/config"
 : >"$CONFIG"
 
 cat >>"$CONFIG" <<EOF
@@ -63,55 +100,53 @@ Host github.com
   IdentityFile ~/.ssh/${NODE_NAME}-github
   IdentitiesOnly yes
 
+# Self (admin login)
 Host ${NODE_NAME}
   HostName ${NODE_IP[$NODE_NAME]}
-  User root
+  User admin
   IdentityFile ~/.ssh/${NODE_NAME}-adminuser
   IdentitiesOnly yes
+  UserKnownHostsFile ${KNOWN_HOSTS}
+  StrictHostKeyChecking yes
 EOF
 
 for PEER in "${CLUSTER[@]}"; do
   [[ $PEER == "$NODE_NAME" ]] && continue
   cat >>"$CONFIG" <<EOF
 
+# Peer ${PEER} over intracom (no root)
 Host ${PEER}
   HostName ${NODE_IP[$PEER]}
-  User root
+  User intracom
   IdentityFile ~/.ssh/${NODE_NAME}-intracom
   IdentitiesOnly yes
+  UserKnownHostsFile ${KNOWN_HOSTS}
+  StrictHostKeyChecking yes
 EOF
 done
-chmod 600 "$CONFIG"
-echo "✅  SSH keys and config set up for '${NODE_NAME}'."
 
-# ─ 6 – Flake reminder (path:./configuration/keys) ───────────────────────────
+chmod 600 "$CONFIG"
+# Ensure user owns ~/.ssh
+chown -R "$(id -u)":"$(id -g)" "$HOME/.ssh"
+
+echo "✅  SSH keys, ssh_known_hosts, and config set up for '${NODE_NAME}'."
+
+# ─ 8 – Flake reminder ───────────────────────────────────────────────────────
 cat <<EOF
 
-📝  In flake.nix (recommended, outside the repo):
+📝  In flake.nix:
 
   inputs.keys = {
     url   = "path:/var/lib/nixos-cluster/keys";
     flake = false;
   };
 
-🔐  Reference the key *contents* (not keyFiles):
+And in your module, ensure:
+  - admin/root authorized only with ${NODE_NAME}-adminuser.pub
+  - intracom authorized with *peers’* intracom.pub
+  - /etc/ssh/ssh_known_hosts sourced from inputs.keys/ssh_known_hosts
 
-  users.users.admin.openssh.authorizedKeys.keys = [
-    (builtins.readFile (inputs.keys + "/${NODE_NAME}-adminuser.pub"))
-  ];
-  users.users.root.openssh.authorizedKeys.keys = [
-    (builtins.readFile (inputs.keys + "/${NODE_NAME}-adminuser.pub"))
-  ];
-
-🔁  After changing any key file run:
-
-  nix flake update --update-input keys
+After changing any key:
   sudo nixos-rebuild switch --flake .#${NODE_NAME}
-
-💡  If you prefer repo-local keys instead:
-  inputs.keys.url = "path:./configuration/keys"
-  # IMPORTANT: git-add the files so the flake can see them:
-  #   git add configuration/keys/*.pub
-  # (They can remain ignored in commits if you want.)
 
 EOF
