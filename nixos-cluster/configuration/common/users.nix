@@ -5,18 +5,22 @@ let
   pub  = "${keys}/${host}-adminuser.pub";
 in
 {
-  systemd.services.sshd.wantedBy = lib.mkForce [ "multi-user.target" ];
-  services.sshd.enable = true;  
+  services.openssh.enable = true;
+
+  # Make absolutely sure no one else sets keyFiles
+  users.users.admin.openssh.authorizedKeys.keyFiles = lib.mkForce [ ];
+  users.users.root.openssh.authorizedKeys.keyFiles  = lib.mkForce [ ];
+
   users.users = {
     admin = {
       isNormalUser = true;
-      extraGroups = [ "wheel" "networkmanager" "podman" ];
-      openssh.authorizedKeys.keys = [
-        (builtins.readFile pub)
-      ];
+      extraGroups  = [ "wheel" "networkmanager" "podman" ];
+      openssh.authorizedKeys.keys = [ (builtins.readFile pub) ];
     };
-    root.openssh.authorizedKeys.keys = [
-      (builtins.readFile pub)
-    ];
+    root.openssh.authorizedKeys.keys = [ (builtins.readFile pub) ];
   };
+
+  # Also ensure no stray /etc entries get created elsewhere:
+  environment.etc."ssh/authorized_keys.d/admin".enable = lib.mkForce false;
+  environment.etc."ssh/authorized_keys.d/root".enable  = lib.mkForce false;
 }
