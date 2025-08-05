@@ -59,11 +59,6 @@ in
   environment.etc."ssh/ssh_known_hosts".source = lib.mkForce "${inputs.keys}/ssh_known_hosts";
   programs.ssh.knownHosts = lib.mkForce {};
 
-  networking.firewall.allowedTCPPorts = [ 22 ];
-  networking.firewall.extraCommands = ''
-    ip46tables -A INPUT -p tcp --dport 22 ! -s 10.10.10.0/24 -j DROP
-  '';
-
   # Let intracom read system journal and run rootless Podman
   users.users.intracom.extraGroups = [ "systemd-journal" "podman" ];
 
