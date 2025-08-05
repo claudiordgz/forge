@@ -56,16 +56,11 @@ in {
     powerManagement.enable = false;
     open = false;
     nvidiaSettings = true;
+    nvidiaPersistenced = true; 
   };
 
   # NVIDIA container runtime hooks (CDI works with Podman)
   hardware.nvidia-container-toolkit.enable = true;
-
-  # ✅ Use the built-in persistenced service instead of a custom oneshot unit
-  # (Keeps GPUs "warm"; optional but avoids timing issues.)
-  services.nvidia-persistenced.enable = true;
-  # For older channels, this is the legacy name; harmless if unknown:
-  hardware.nvidia.nvidiaPersistenced = lib.mkDefault true;
 
   time.timeZone = "America/Los_Angeles";
   i18n.defaultLocale = "en_US.UTF-8";
