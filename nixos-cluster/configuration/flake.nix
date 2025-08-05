@@ -41,7 +41,10 @@
     nixosConfigurations =
       let
         # One shared import of the unstable channel (x86_64 only here)
-        pkgsUnstable = import nixpkgs-unstable { system = "x86_64-linux"; };
+        pkgsUnstable = import nixpkgs-unstable {
+          system = "x86_64-linux";
+          config = { allowUnfree = true; };
+        };
 
         mkHost = hostName:
           nixpkgs.lib.nixosSystem {
