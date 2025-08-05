@@ -47,6 +47,16 @@ in {
 
   hardware.nvidia-container-toolkit.enable = true;
 
+  systemd.services.nvidia-persistence-mode = {
+    description = "Enable NVIDIA persistence mode";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "/run/current-system/sw/bin/nvidia-smi -pm 1";
+    };
+  };
+
   time.timeZone = "America/Los_Angeles";
   i18n.defaultLocale = "en_US.UTF-8";
   i18n.extraLocaleSettings = {
