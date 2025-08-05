@@ -13,8 +13,8 @@ in {
   nixpkgs.config.allowUnfree = true;
 
   services.openssh.enable = true;
-  services.openssh.settings.PermitRootLogin = "yes";
-  services.openssh.settings.PasswordAuthentication = true;
+  services.openssh.settings.PermitRootLogin = "prohibit-password";
+  services.openssh.settings.PasswordAuthentication = false;
   services.openssh.settings.KbdInteractiveAuthentication = false;
 
   virtualisation.podman = {
@@ -34,18 +34,30 @@ in {
     glxinfo mesa-demos pciutils
     htop curl git vim tmux jq
     pkgsUnstable._1password-cli yq
+    ookla-speedtest
   ];
+
+  hardware.graphics.enable = true;
 
   services.xserver.videoDrivers = [ "nvidia" ];
 
   hardware.nvidia = {
+    package = config.boot.kernelPackages.nvidiaPackages.production;
     modesetting.enable = true;
     powerManagement.enable = false;
-    open = false; # set to true if you want open kernel module (requires newer GPUs)
-    package = config.boot.kernelPackages.nvidiaPackages.stable;
+    open = false;
+    nvidiaSettings = true;
   };
 
+  services.nvidia-persistenced.enable = true;
+
   hardware.nvidia-container-toolkit.enable = true;
+
+  environment.systemPackages = with pkgs; [
+    cudatoolkit
+    cudaPackages.cudnn
+    cudaPackages.nccl
+  ];
 
   time.timeZone = "America/Los_Angeles";
   i18n.defaultLocale = "en_US.UTF-8";
