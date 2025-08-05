@@ -55,7 +55,8 @@ in
   users.groups.intracom = {};
 
   # Pin known_hosts so SSH never prompts
-  environment.etc."ssh/ssh_known_hosts".source = "${inputs.keys}/ssh_known_hosts";
+  environment.etc."ssh/ssh_known_hosts".source = lib.mkForce "${inputs.keys}/ssh_known_hosts";
+  programs.ssh.knownHosts = lib.mkForce {};
 
   networking.firewall.allowedTCPPorts = [ 22 ];
   networking.firewall.extraCommands = ''
