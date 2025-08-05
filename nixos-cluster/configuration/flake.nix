@@ -5,10 +5,9 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixos-generators.url = "github:nix-community/nixos-generators";
     flake-utils.url = "github:numtide/flake-utils";
-    sops-nix.url = "github:Mic92/sops-nix";
   };
 
-  outputs = { self, nixpkgs, flake-utils, sops-nix, ... }:
+  outputs = { self, nixpkgs, flake-utils, ... }:
 
   flake-utils.lib.eachDefaultSystem (
     system:
@@ -16,7 +15,7 @@
       pkgs = import nixpkgs { inherit system; };
     in {
       devShells.default = pkgs.mkShell {
-        packages = with pkgs; [ git gnupg sops ];
+        packages = with pkgs; [ git gnupg ];
       };
     }
   ) // {
@@ -27,7 +26,6 @@
           ./common/common.nix
           ./common/users.nix
           ./hosts/${hostName}/configuration.nix
-          sops-nix.nixosModules.sops
         ];
       };
     in {
