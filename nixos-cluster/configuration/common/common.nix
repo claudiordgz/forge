@@ -1,4 +1,4 @@
-{ config, pkgs, pkgsUnstable, ... }:
+{ config, pkgs, lib, pkgsUnstable, ... }:
 
 let
   host = config.networking.hostName;
