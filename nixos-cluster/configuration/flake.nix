@@ -13,7 +13,7 @@
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, keys, ... }@inputs:
+  outputs = { self, nixpkgs, nixpkgs-unstable, flake-utils, keys, ... }@inputs:
 
   flake-utils.lib.eachDefaultSystem (system:
     let
