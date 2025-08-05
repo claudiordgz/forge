@@ -25,7 +25,6 @@
         system = "x86_64-linux";
         modules = [
           ./common/common.nix
-          ./common/sops.nix
           ./common/users.nix
           ./hosts/${hostName}/configuration.nix
           sops-nix.nixosModules.sops
