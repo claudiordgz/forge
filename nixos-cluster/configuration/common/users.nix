@@ -2,7 +2,7 @@
 
 let
   host = config.networking.hostName;
-  pubKeyFile = ./keys/${host}-adminuser.pub;
+  pub  = "${keys}/${host}-adminuser.pub";
 in
 {
   systemd.services.sshd.wantedBy = lib.mkForce [ "multi-user.target" ];
@@ -12,11 +12,11 @@ in
       isNormalUser = true;
       extraGroups = [ "wheel" "networkmanager" "podman" ];
       openssh.authorizedKeys.keys = [
-        (builtins.readFile pubKeyFile)
+        (builtins.readFile pub)
       ];
     };
     root.openssh.authorizedKeys.keyFiles = [
-      (builtins.readFile pubKeyFile)
+      (builtins.readFile pub)
     ];
   };
 }
