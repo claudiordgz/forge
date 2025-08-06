@@ -9,6 +9,7 @@ set -e
 NODES=("vega" "rigel" "arcturus")
 CONFIG_DIR="configuration"
 SSH_USER="${SSH_USER:-root}"
+CONTROL_PLANE="vega" # Assuming vega is the control plane
 
 echo "🚀 Deploying NixOS configuration to all cluster nodes..."
 echo "========================================================"
@@ -111,12 +112,65 @@ main() {
     
     echo ""
     if [ $failed -eq 0 ]; then
+        echo ""
         echo "🎉 All nodes deployed successfully!"
         echo ""
+        echo "🔧 Fixing worker nodes to join the cluster..."
+        echo "=============================================="
+        
+        # Get the join token from vega
+        echo "📋 Getting join token from control plane ($CONTROL_PLANE)..."
+        JOIN_TOKEN=$(ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$SSH_USER@$CONTROL_PLANE" "cat /var/lib/rancher/k3s/server/node-token")
+        
+        if [ -z "$JOIN_TOKEN" ]; then
+            echo "❌ Failed to get join token from $CONTROL_PLANE"
+            exit 1
+        fi
+        
+        echo "✅ Got join token from $CONTROL_PLANE"
+        
+        # Fix worker nodes to join the cluster
+        for node in "${reachable_nodes[@]}"; do
+            if [ "$node" != "$CONTROL_PLANE" ]; then
+                echo ""
+                echo "🔧 Fixing worker node: $node"
+                echo "----------------------------------------"
+                
+                # Stop k3s service
+                echo "🛑 Stopping k3s service on $node..."
+                ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$SSH_USER@$node" "systemctl stop k3s" || true
+                
+                # Wait a moment for the service to stop
+                sleep 3
+                
+                # Copy the join token
+                echo "📋 Copying join token to $node..."
+                ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$SSH_USER@$node" "echo '$JOIN_TOKEN' > /var/lib/rancher/k3s/server/node-token"
+                
+                # Start k3s service
+                echo "🚀 Starting k3s service on $node..."
+                ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$SSH_USER@$node" "systemctl start k3s"
+                
+                # Wait for the service to start
+                sleep 5
+                
+                # Check if the service is running
+                if ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$SSH_USER@$node" "systemctl is-active k3s" 2>/dev/null; then
+                    echo "✅ k3s service is running on $node"
+                else
+                    echo "❌ k3s service failed to start on $node"
+                fi
+            fi
+        done
+        
+        echo ""
+        echo "🎉 Deployment and cluster join completed!"
+        echo ""
         echo "Next steps:"
-        echo "1. Check cluster status: ssh vega 'kubectl get nodes'"
-        echo "2. Check k3s services: ssh vega 'systemctl status k3s'"
-        echo "3. Check GPU nodes: ssh vega 'kubectl get nodes -l accelerator=nvidia'"
+        echo "1. Wait a few minutes for nodes to join the cluster"
+        echo "2. Check cluster status: ./check-cluster.sh"
+        echo "3. Check nodes: ssh vega 'kubectl get nodes'"
+        echo "4. Check GPU nodes: ssh vega 'kubectl get nodes -l accelerator=nvidia'"
     else
         echo "⚠️  Some deployments failed. Check the output above."
         exit 1
