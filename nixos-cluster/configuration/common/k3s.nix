@@ -80,6 +80,10 @@ in {
         
         # Allow nginx-ingress health check port
         iptables -A nixos-fw -p tcp --dport 10254 -j nixos-fw-accept
+        
+        # Allow HTTP-01 challenge solver ports
+        iptables -A nixos-fw -p tcp --dport 30785 -j nixos-fw-accept
+        iptables -A nixos-fw -p tcp --dport 30319 -j nixos-fw-accept
       '';
     };
   };
