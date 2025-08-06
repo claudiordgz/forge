@@ -129,22 +129,39 @@ save_cloudflare_api_token() {
     echo "✅ Saved Cloudflare API token to $node"
 }
 
+sign_in_to_1password() {
+    echo "🔐 Not signed in to 1Password CLI"
+    echo "Please run: eval \"\$(op signin --account https://my.1password.com)\""
+    echo "Then run this script again."
+    exit 1
+}
+
 # Main deployment logic
 main() {
-    # Check if 1Password CLI is signed in, sign in if not
-    if ! op whoami &>/dev/null; then
-        echo "🔐  1Password CLI not signed in — signing in…"
-        eval "$(op signin --account https://my.1password.com)"
-        echo "✅  Signed in."
-    fi
-
     echo "🔑 Fetching Cloudflare API token from 1Password..."
     echo
-    CLOUDFLARE_API_TOKEN=$(op item get "cloudflare-locallier.com-token" --format json --reveal | jq -r '.fields[] | select(.id == "password") | .value')
-    if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
-        echo "❌ Failed to get Cloudflare API token from 1Password"
-        exit 1
+    
+    # Check if already signed in first
+    echo "Checking if already signed in..."
+    if op whoami &>/dev/null; then
+        echo "✅ Already signed in to 1Password CLI"
+        # Try to fetch the token
+        echo "Fetching token..."
+        if CLOUDFLARE_API_TOKEN=$(op item get "cloudflare-locallier.com-token" --format json --reveal | jq -r '.fields[] | select(.id == "password") | .value' 2>/dev/null); then
+            echo "✅ Got Cloudflare API token from 1Password"
+        else
+            echo "❌ Failed to get Cloudflare API token"
+            exit 1
+        fi
+        if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "❌ Cloudflare API token is empty"
+            sign_in_to_1password
+            exit 1
+        fi
+    else
+        sign_in_to_1password
     fi
+    
     echo "✅ Got Cloudflare API token from 1Password"
     save_cloudflare_api_token "vega" "$CLOUDFLARE_API_TOKEN"
 
