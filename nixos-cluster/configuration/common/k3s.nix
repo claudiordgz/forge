@@ -64,13 +64,4 @@ in {
       };
     };
   };
-
-  # Add GPU node labels and taints
-  systemd.services.k3s-agent = lib.mkIf (!isControlPlane) {
-    preStart = ''
-      # Add GPU labels after k3s starts
-      sleep 10
-      kubectl label node $(hostname) accelerator=nvidia --overwrite || true
-    '';
-  };
 } 
