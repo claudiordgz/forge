@@ -1,15 +1,13 @@
+# Install cert-manager using the official manifest
+# This includes all necessary components: cert-manager, cainjector, webhook
+# Source: https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml
+
 apiVersion: v1
 kind: Namespace
 metadata:
   name: cert-manager
   labels:
     name: cert-manager
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: cert-manager
-  namespace: cert-manager
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -36,7 +34,6 @@ spec:
         - --v=2
         - --cluster-resource-namespace=$(POD_NAMESPACE)
         - --leader-election-namespace=$(POD_NAMESPACE)
-        - --dns01-recursive-nameservers=8.8.8.8:53,1.1.1.1:53
         env:
         - name: POD_NAMESPACE
           valueFrom:
@@ -53,6 +50,12 @@ spec:
           limits:
             cpu: 200m
             memory: 256Mi
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cert-manager
+  namespace: cert-manager
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -102,7 +105,7 @@ rules:
   resources: ["certificates/status", "certificaterequests/status", "issuers/status", "clusterissuers/status"]
   verbs: ["get", "update", "patch"]
 - apiGroups: ["acme.cert-manager.io"]
-  resources: ["challenges", "orders"]
+  resources: ["challenges", "orders", "challenges/status", "orders/status"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 - apiGroups: ["coordination.k8s.io"]
   resources: ["leases"]

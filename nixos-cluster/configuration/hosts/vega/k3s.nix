@@ -36,8 +36,8 @@ in {
       Type = "oneshot";
       RemainAfterExit = true;
       Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
-      ExecStart = "${pkgs.kubectl}/bin/kubectl apply -f ${certManagerManifestFile}";
-      ExecStop = "${pkgs.kubectl}/bin/kubectl delete -f ${certManagerManifestFile} --ignore-not-found=true";
+      ExecStart = "${pkgs.kubectl}/bin/kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml";
+      ExecStop = "${pkgs.kubectl}/bin/kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml --ignore-not-found=true";
     };
   };
 
