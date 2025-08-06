@@ -20,8 +20,11 @@ in {
     serverAddr = if isControlPlane then null else "https://10.10.10.5:6443";
     tokenFile = if isControlPlane then null else "/var/lib/rancher/k3s/server/node-token";
     
-    # Extra server args for the control plane
-    extraServerArgs = lib.mkIf isControlPlane [
+    # Extra args for all nodes
+    extraArgs = [
+      "--node-label=accelerator=nvidia"
+      "--node-label=gpu.model=${gpuModel}"
+    ] ++ (if isControlPlane then [
       "--disable=traefik"  # We'll use nginx-ingress instead
       "--disable=servicelb"  # We'll use metallb instead
       "--disable=local-storage"
@@ -31,16 +34,9 @@ in {
       "--cluster-cidr=10.244.0.0/16"
       "--service-cidr=10.96.0.0/12"
       "--node-label=node.kubernetes.io/role=control-plane"
-      "--node-label=accelerator=nvidia"
-      "--node-label=gpu.model=${gpuModel}"
-    ];
-    
-    # Extra agent args for worker nodes (combined into single definition)
-    extraAgentArgs = lib.mkIf (!isControlPlane) [
+    ] else [
       "--node-label=node.kubernetes.io/role=worker"
-      "--node-label=accelerator=nvidia"
-      "--node-label=gpu.model=${gpuModel}"
-    ];
+    ]);
   };
 
   # Environment variables for k3s
