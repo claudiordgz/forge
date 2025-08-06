@@ -20,8 +20,6 @@ let
       "--disable=local-storage"
       "--disable-cloud-controller"
       "--disable-network-policy"
-      "--cluster-cidr=10.244.0.0/16"
-      "--service-cidr=10.96.0.0/12"
       # GPU labels
       "--node-label=accelerator=nvidia"
       "--node-label=gpu.model=${gpuModel}"
