@@ -86,7 +86,7 @@ in {
         runtime_engine = "";
         runtime_root = "";
         runtime_type = "io.containerd.runc.v2";
-        [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia.options] = {
+        options = {
           BinaryName = "/usr/bin/nvidia-container-runtime";
           SystemdCgroup = true;
         };
