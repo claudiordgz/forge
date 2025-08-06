@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, inputs, ... }:
 
 let
   # Path to the dashboard manifest file
@@ -12,6 +12,9 @@ let
 
   # Path to nginx-ingress manifest file
   nginxIngressManifestFile = ../../../kubernetes/nginx-ingress.yaml;
+
+  # Path to the keys directory from the flake input
+  keysDir = inputs.keys;
 in {
   # Deploy Kubernetes Dashboard automatically when k3s starts
   systemd.services.k3s-dashboard = {
@@ -41,10 +44,9 @@ in {
     };
   };
 
-  # Create Cloudflare API token secret using environment variable
-  # This will be created during nixos-rebuild if CLOUDFLARE_API_TOKEN is set
-  systemd.services.k3s-cloudflare-secret = lib.mkIf (builtins.getEnv "CLOUDFLARE_API_TOKEN" != "") {
-    description = "Deploy Cloudflare API Token Secret from Environment";
+  # Create Cloudflare API token secret from file
+  systemd.services.k3s-cloudflare-secret = {
+    description = "Deploy Cloudflare API Token Secret from File";
     wantedBy = [ "k3s-cert-manager.service" ];
     after = [ "k3s-cert-manager.service" ];
     serviceConfig = {
@@ -52,10 +54,19 @@ in {
       RemainAfterExit = true;
       Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
       ExecStart = pkgs.writeShellScript "create-cloudflare-secret" ''
+        # Check if the token file exists
+        if [ ! -f ${keysDir}/cloudflare-api-token ]; then
+          echo "Error: Cloudflare API token file not found at ${keysDir}/cloudflare-api-token"
+          exit 1
+        fi
+        
+        # Read the token from the file
+        API_TOKEN=$(cat ${keysDir}/cloudflare-api-token)
+        
         # Create the secret directly with kubectl
         ${pkgs.kubectl}/bin/kubectl create secret generic cloudflare-api-token-secret \
           --namespace=cert-manager \
-          --from-literal=api-token="${builtins.getEnv "CLOUDFLARE_API_TOKEN"}" \
+          --from-literal=api-token="$API_TOKEN" \
           --dry-run=client -o yaml | ${pkgs.kubectl}/bin/kubectl apply -f -
       '';
       ExecStop = "${pkgs.kubectl}/bin/kubectl delete secret cloudflare-api-token-secret -n cert-manager --ignore-not-found=true";

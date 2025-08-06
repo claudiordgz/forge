@@ -19,8 +19,7 @@ deploy_node() {
     local node=$1
     echo "📦 Deploying to $node..."
     
-    # For vega (control plane), we need to pass the Cloudflare API token
-    local env_vars=""
+    # For vega (control plane), we need to save the Cloudflare API token to a file
     if [ "$node" = "vega" ]; then
         echo "🔑 Fetching Cloudflare API token from 1Password..."
         
@@ -31,13 +30,15 @@ deploy_node() {
             echo "✅  Signed in."
         fi
         
-        # Fetch the Cloudflare API token
+        # Fetch the Cloudflare API token and save it to a file on vega
         if ! CLOUDFLARE_API_TOKEN=$(op item get cloudflare-locallier.com-token --field password --reveal 2>/dev/null); then
             echo "❌ Failed to get Cloudflare API token from 1Password"
             exit 1
         fi
-        env_vars="CLOUDFLARE_API_TOKEN='$CLOUDFLARE_API_TOKEN'"
-        echo "✅ Got Cloudflare API token from 1Password"
+        
+        echo "📁 Saving Cloudflare API token to vega..."
+        ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$SSH_USER@$node" "mkdir -p /var/lib/nixos-cluster/keys && echo '$CLOUDFLARE_API_TOKEN' > /var/lib/nixos-cluster/keys/cloudflare-api-token && chmod 600 /var/lib/nixos-cluster/keys/cloudflare-api-token"
+        echo "✅ Saved Cloudflare API token to vega"
     fi
     
     # SSH to the node and run nixos-rebuild with better error handling
@@ -65,7 +66,7 @@ deploy_node() {
         
         # If dry run succeeds, do the actual deployment
         echo "🚀 Applying configuration to \$NODE_NAME..."
-        if ! sudo -E $env_vars nixos-rebuild switch --flake .#\$NODE_NAME >> /tmp/deploy.log 2>&1; then
+        if ! sudo nixos-rebuild switch --flake .#\$NODE_NAME >> /tmp/deploy.log 2>&1; then
             echo "❌ Deployment failed for \$NODE_NAME:"
             cat /tmp/deploy.log
             exit 1
