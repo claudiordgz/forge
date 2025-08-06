@@ -27,10 +27,27 @@ in {
   # Networking configuration for k3s
   networking = {
     firewall = {
-      # Allow k3s API server (control plane only)
-      allowedTCPPorts = lib.mkIf isControlPlane [ 6443 ] ++ [ 10250 ];
-      # Allow k3s node communication
-      allowedUDPPorts = [ 8472 51820 ];
+      # Allow SSH from anywhere (needed for remote management)
+      allowedTCPPorts = [ 22 ];
+      
+      # Allow k3s ports only from local network
+      extraCommands = ''
+        # Allow k3s API server (6443) only from local network
+        ${lib.optionalString isControlPlane ''
+          iptables -A nixos-fw -p tcp --dport 6443 -s 10.10.10.0/24 -j nixos-fw-accept
+          ip6tables -A nixos-fw -p tcp --dport 6443 -j nixos-fw-accept
+        ''}
+        
+        # Allow k3s metrics (10250) only from local network
+        iptables -A nixos-fw -p tcp --dport 10250 -s 10.10.10.0/24 -j nixos-fw-accept
+        ip6tables -A nixos-fw -p tcp --dport 10250 -j nixos-fw-accept
+        
+        # Allow k3s node communication (UDP) only from local network
+        iptables -A nixos-fw -p udp --dport 8472 -s 10.10.10.0/24 -j nixos-fw-accept
+        iptables -A nixos-fw -p udp --dport 51820 -s 10.10.10.0/24 -j nixos-fw-accept
+        ip6tables -A nixos-fw -p udp --dport 8472 -j nixos-fw-accept
+        ip6tables -A nixos-fw -p udp --dport 51820 -j nixos-fw-accept
+      '';
     };
   };
 } 
