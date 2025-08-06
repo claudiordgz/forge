@@ -23,4 +23,14 @@ in {
 
   # Configure containerd for k3s (k3s needs containerd, not podman)
   virtualisation.containerd.enable = true;
+
+  # Networking configuration for k3s
+  networking = {
+    firewall = {
+      # Allow k3s API server (control plane only)
+      allowedTCPPorts = lib.mkIf isControlPlane [ 6443 ] ++ [ 10250 ];
+      # Allow k3s node communication
+      allowedUDPPorts = [ 8472 51820 ];
+    };
+  };
 } 
