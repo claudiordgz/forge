@@ -10,6 +10,15 @@ let
     "rigel" = "rtx3080";
     "arcturus" = "rtx2080";
   }.${config.networking.hostName} or "unknown";
+  
+  # Create extra flags list
+  extraFlagsList = [
+    "--node-label=accelerator=nvidia"
+    "--node-label=gpu.model=${gpuModel}"
+  ];
+  
+  # Convert list to space-separated string
+  extraFlagsString = lib.concatStringsSep " " extraFlagsList;
 in {
   # Enable k3s service
   services.k3s = {
@@ -20,15 +29,8 @@ in {
     serverAddr = lib.mkIf (!isControlPlane) "https://10.10.10.5:6443";
     tokenFile = lib.mkIf (!isControlPlane) "/var/lib/rancher/k3s/server/node-token";
     
-    # Extra flags for all nodes (conditional based on role)
-    extraFlags = 
-      if isControlPlane then [
-        "--node-label=accelerator=nvidia"
-        "--node-label=gpu.model=${gpuModel}"
-      ] else [
-        "--node-label=accelerator=nvidia"
-        "--node-label=gpu.model=${gpuModel}"
-      ];
+    # Extra flags as a single string
+    extraFlags = extraFlagsString;
   };
 
   # Configure containerd for k3s (k3s needs containerd, not podman)
