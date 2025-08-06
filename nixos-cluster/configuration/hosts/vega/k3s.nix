@@ -4,14 +4,14 @@ let
   # Path to the dashboard manifest file
   dashboardManifestFile = ../../../kubernetes/dashboard.yaml;
 
-  # Path to cert-manager manifest file
-  certManagerManifestFile = ../../../kubernetes/cert-manager.yaml;
-
   # Path to Let's Encrypt issuer manifest file
   letsencryptIssuerManifestFile = ../../../kubernetes/letsencrypt-issuer.yaml;
 
   # Path to dashboard certificate manifest file
   dashboardCertificateManifestFile = ../../../kubernetes/dashboard-certificate.yaml;
+
+  # Path to nginx-ingress manifest file
+  nginxIngressManifestFile = ../../../kubernetes/nginx-ingress.yaml;
 in {
   # Deploy Kubernetes Dashboard automatically when k3s starts
   systemd.services.k3s-dashboard = {
@@ -41,11 +41,25 @@ in {
     };
   };
 
-  # Deploy Let's Encrypt issuer after cert-manager
-  systemd.services.k3s-letsencrypt-issuer = {
-    description = "Deploy Let's Encrypt ClusterIssuer";
+  # Deploy nginx-ingress after cert-manager
+  systemd.services.k3s-nginx-ingress = {
+    description = "Deploy nginx-ingress controller";
     wantedBy = [ "k3s-cert-manager.service" ];
     after = [ "k3s-cert-manager.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
+      ExecStart = "${pkgs.kubectl}/bin/kubectl apply -f ${nginxIngressManifestFile}";
+      ExecStop = "${pkgs.kubectl}/bin/kubectl delete -f ${nginxIngressManifestFile} --ignore-not-found=true";
+    };
+  };
+
+  # Deploy Let's Encrypt issuer after nginx-ingress
+  systemd.services.k3s-letsencrypt-issuer = {
+    description = "Deploy Let's Encrypt ClusterIssuer";
+    wantedBy = [ "k3s-nginx-ingress.service" ];
+    after = [ "k3s-nginx-ingress.service" ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
