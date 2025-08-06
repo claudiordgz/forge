@@ -73,6 +73,10 @@ in {
         ip6tables -A nixos-fw -p udp --dport 51820 -j nixos-fw-accept
         # Allow Kubernetes Dashboard access
         iptables -A nixos-fw -p tcp --dport 30443 -s 10.10.10.0/24 -j nixos-fw-accept
+        
+        # Allow nginx-ingress controller ports for Let's Encrypt HTTP-01 challenges
+        iptables -A nixos-fw -p tcp --dport 30387 -j nixos-fw-accept
+        iptables -A nixos-fw -p tcp --dport 31003 -j nixos-fw-accept
       '';
     };
   };
