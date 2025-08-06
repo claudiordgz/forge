@@ -37,18 +37,7 @@ in {
     };
   };
 
-  # Persist k3s data
-  systemd.services.k3s = {
-    serviceConfig = {
-      Restart = "always";
-      RestartSec = "5s";
-    };
-  };
-
-  # Add GPU support
-  hardware.nvidia-container-toolkit.enable = true;
-  
-  # Configure containerd for GPU support
+  # Configure containerd for k3s (k3s needs containerd, not podman)
   virtualisation.containerd = {
     enable = true;
     settings = {
