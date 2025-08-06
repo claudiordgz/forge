@@ -84,6 +84,13 @@ in {
         # Allow HTTP-01 challenge solver ports
         iptables -A nixos-fw -p tcp --dport 30785 -j nixos-fw-accept
         iptables -A nixos-fw -p tcp --dport 30319 -j nixos-fw-accept
+        
+        # Allow Traefik LoadBalancer ports
+        iptables -A nixos-fw -p tcp --dport 31852 -j nixos-fw-accept
+        iptables -A nixos-fw -p tcp --dport 30886 -j nixos-fw-accept
+        
+        # Allow additional Kubernetes ports
+        iptables -A nixos-fw -p tcp --dport 30000:32767 -j nixos-fw-accept
       '';
     };
   };
