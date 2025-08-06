@@ -51,8 +51,8 @@ spec:
           protocol: TCP
         args:
         - --namespace=kubernetes-dashboard
-        - --tls-cert-file=/certs/tls.crt
-        - --tls-key-file=/certs/tls.key
+        - --tls-cert-file=tls.crt
+        - --tls-key-file=tls.key
         volumeMounts:
         - name: kubernetes-dashboard-certs
           mountPath: /certs
