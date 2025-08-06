@@ -33,6 +33,11 @@ This directory contains Kubernetes manifests that are automatically deployed wit
 - **Domain**: dashboard.locallier.com, k8s.locallier.com
 - **Automatic renewal**: Managed by cert-manager
 
+### `dashboard-ingress.yaml`
+- **Purpose**: Ingress configuration for the Kubernetes Dashboard
+- **Domain**: dashboard.locallier.com, k8s.locallier.com
+- **Features**: SSL termination, automatic redirects, SSL passthrough
+
 ## Deployment
 
 These manifests are automatically deployed by the NixOS configuration:
