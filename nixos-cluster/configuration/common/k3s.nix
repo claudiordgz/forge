@@ -38,19 +38,5 @@ in {
   };
 
   # Configure containerd for k3s (k3s needs containerd, not podman)
-  virtualisation.containerd = {
-    enable = true;
-    settings = {
-      plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia = {
-        privileged_without_host_devices = false;
-        runtime_engine = "";
-        runtime_root = "";
-        runtime_type = "io.containerd.runc.v2";
-        options = {
-          BinaryName = "/usr/bin/nvidia-container-runtime";
-          SystemdCgroup = true;
-        };
-      };
-    };
-  };
+  virtualisation.containerd.enable = true;
 } 
