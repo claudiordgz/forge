@@ -19,26 +19,6 @@ in {
     # Server (control plane) configuration
     serverAddr = if isControlPlane then null else "https://10.10.10.5:6443";
     tokenFile = if isControlPlane then null else "/var/lib/rancher/k3s/server/node-token";
-    
-    # Extra flags for all nodes (conditional based on role)
-    extraFlags = 
-      if isControlPlane then [
-        "--disable=traefik"  # We'll use nginx-ingress instead
-        "--disable=servicelb"  # We'll use metallb instead
-        "--disable=local-storage"
-        "--disable-cloud-controller"
-        "--disable-network-policy"
-        "--flannel-backend=none"  # We'll use calico
-        "--cluster-cidr=10.244.0.0/16"
-        "--service-cidr=10.96.0.0/12"
-        "--node-label=node.kubernetes.io/role=control-plane"
-        "--node-label=accelerator=nvidia"
-        "--node-label=gpu.model=${gpuModel}"
-      ] else [
-        "--node-label=node.kubernetes.io/role=worker"
-        "--node-label=accelerator=nvidia"
-        "--node-label=gpu.model=${gpuModel}"
-      ];
   };
 
   # Environment variables for k3s
