@@ -14,17 +14,17 @@ This directory contains Kubernetes manifests that are automatically deployed wit
   - GPU node information
 - **Security**: Only accessible from local network (10.10.10.0/24)
 
-### `cert-manager.yaml`
-- **Purpose**: cert-manager for automatic SSL certificate management
+### `nginx-ingress.yaml`
+- **Purpose**: nginx-ingress controller for HTTP-01 challenge support
 - **Features**:
-  - Automatically manages TLS certificates
-  - Integrates with Let's Encrypt for free SSL certificates
-  - Supports DNS-01 challenges for local domains
+  - Enables HTTP-01 challenge for Let's Encrypt certificates
+  - Provides ingress functionality for services
+  - Exposed on NodePort 30080 (HTTP) and 30443 (HTTPS)
 
 ### `letsencrypt-issuer.yaml`
 - **Purpose**: Let's Encrypt ClusterIssuer for SSL certificates
 - **Configuration**:
-  - Uses DNS-01 challenge for domain `locallier.com`
+  - Uses HTTP-01 challenge for domain `locallier.com`
   - Email: claudio.rdgz+forge@gmail.com
   - Production Let's Encrypt server
 
