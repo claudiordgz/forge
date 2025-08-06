@@ -57,7 +57,7 @@ spec:
           mountPath: /certs
         - name: kubernetes-dashboard-csrf
           mountPath: /csrf
-        - name: kubernetes-dashboard-key-holder
+        - name: dashboard-logs
           mountPath: /tmp
       volumes:
       - name: kubernetes-dashboard-certs
@@ -66,9 +66,8 @@ spec:
       - name: kubernetes-dashboard-csrf
         secret:
           secretName: kubernetes-dashboard-csrf
-      - name: kubernetes-dashboard-key-holder
-        secret:
-          secretName: kubernetes-dashboard-key-holder
+      - name: dashboard-logs
+        emptyDir: {}
 ---
 apiVersion: v1
 kind: Secret
