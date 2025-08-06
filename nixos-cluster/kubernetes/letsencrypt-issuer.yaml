@@ -13,10 +13,6 @@ spec:
       name: letsencrypt-prod
     # Add a single challenge solver, HTTP01 will be used
     solvers:
-    - dns01:
-        # For local network, we'll use a simple DNS challenge
-        # This requires manual DNS record creation
-        cnameStrategy: Follow
-      selector:
-        dnsZones:
-        - "locallier.com" 
+    - http01:
+        ingress:
+          class: nginx 
