@@ -101,11 +101,11 @@ in {
     };
   };
 
-  # Deploy dashboard certificate after Let's Encrypt issuer
+  # Deploy dashboard certificate after Let's Encrypt issuer and dashboard
   systemd.services.k3s-dashboard-certificate = {
     description = "Deploy Dashboard Certificate";
     wantedBy = [ "k3s-letsencrypt-issuer.service" ];
-    after = [ "k3s-letsencrypt-issuer.service" ];
+    after = [ "k3s-letsencrypt-issuer.service" "k3s-dashboard.service" ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
