@@ -9,5 +9,4 @@ spec:
     name: letsencrypt-prod
     kind: ClusterIssuer
   dnsNames:
-  - dashboard.locallier.com
-  - k8s.locallier.com 
+  - dashboard.locallier.com 

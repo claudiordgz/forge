@@ -23,13 +23,6 @@ deploy_node() {
     if [ "$node" = "vega" ]; then
         echo "🔑 Fetching Cloudflare API token from 1Password..."
         
-        # Check if 1Password CLI is signed in, sign in if not
-        if ! op whoami &>/dev/null; then
-            echo "🔐  1Password CLI not signed in — signing in…"
-            eval "$(op signin --account https://my.1password.com)"
-            echo "✅  Signed in."
-        fi
-        
         # Fetch the Cloudflare API token and save it to a file on vega
         if ! CLOUDFLARE_API_TOKEN=$(op item get cloudflare-locallier.com-token --field password --reveal 2>/dev/null); then
             echo "❌ Failed to get Cloudflare API token from 1Password"
@@ -98,6 +91,13 @@ check_connectivity() {
 
 # Main deployment logic
 main() {
+    # Check if 1Password CLI is signed in, sign in if not
+    if ! op whoami &>/dev/null; then
+        echo "🔐  1Password CLI not signed in — signing in…"
+        eval "$(op signin --account https://my.1password.com)"
+        echo "✅  Signed in."
+    fi
+    
     echo "🔍 Checking node connectivity..."
     local reachable_nodes=()
     
