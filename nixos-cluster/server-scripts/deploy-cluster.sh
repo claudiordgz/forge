@@ -18,13 +18,30 @@ deploy_node() {
     local node=$1
     echo "📦 Deploying to $node..."
     
-    # SSH to the node and run nixos-rebuild
-    ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$SSH_USER@$node" << EOF
-        cd /root/forge/nixos-cluster/$CONFIG_DIR
-        sudo nixos-rebuild switch --flake .#$node
+    # SSH to the node and run nixos-rebuild with better error handling
+    if ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$SSH_USER@$node" << 'EOF'
+        set -e
+        cd /root/forge/nixos-cluster/configuration
+        
+        # First do a dry run to catch configuration errors
+        echo "🔍 Checking configuration for $node..."
+        if ! sudo nixos-rebuild dry-activate --flake .#$node > /tmp/deploy.log 2>&1; then
+            echo "❌ Configuration check failed for $node:"
+            cat /tmp/deploy.log
+            exit 1
+        fi
+        
+        # If dry run succeeds, do the actual deployment
+        echo "🚀 Applying configuration to $node..."
+        if ! sudo nixos-rebuild switch --flake .#$node >> /tmp/deploy.log 2>&1; then
+            echo "❌ Deployment failed for $node:"
+            cat /tmp/deploy.log
+            exit 1
+        fi
+        
+        echo "✅ $node deployed successfully"
 EOF
-    
-    if [ $? -eq 0 ]; then
+    then
         echo "✅ $node deployed successfully"
     else
         echo "❌ Failed to deploy to $node"

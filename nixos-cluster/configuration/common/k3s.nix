@@ -25,19 +25,12 @@ in {
       "--service-cidr=10.96.0.0/12"
     ];
     
-    # Extra agent args for worker nodes
+    # Extra agent args for worker nodes (combined into single definition)
     extraAgentArgs = lib.mkIf (!isControlPlane) [
       "--node-label=node.kubernetes.io/role=worker"
+      "--node-label=accelerator=nvidia"
     ];
   };
-
-  # Add GPU-specific labels and taints
-  services.k3s.extraAgentArgs = lib.mkIf (!isControlPlane) (
-    config.services.k3s.extraAgentArgs ++ [
-      "--node-label=accelerator=nvidia"
-      "--node-label=node.kubernetes.io/role=worker"
-    ]
-  );
 
   # Environment variables for k3s
   environment.variables = {
