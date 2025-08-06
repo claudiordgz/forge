@@ -25,7 +25,7 @@ This directory contains Kubernetes manifests that are automatically deployed wit
 - **Purpose**: Let's Encrypt ClusterIssuer for SSL certificates
 - **Configuration**:
   - Uses DNS-01 challenge for local domain `forge.local`
-  - Email: admin@forge.local
+  - Email: admin@example.com (placeholder - needs real email)
   - Production Let's Encrypt server
 
 ## Deployment
@@ -34,33 +34,38 @@ These manifests are automatically deployed by the NixOS configuration in `config
 
 ## SSL Certificate Setup
 
-### Local Domain Configuration
-1. Add to your local DNS or `/etc/hosts`:
-   ```
-   10.10.10.5    dashboard.forge.local
-   ```
+### ⚠️ Important Note: Let's Encrypt Limitations
 
-2. The cert-manager will automatically:
-   - Request certificates from Let's Encrypt
-   - Use DNS-01 challenge for verification
-   - Store certificates in Kubernetes secrets
+**Let's Encrypt requires a publicly accessible domain** for certificate validation. For local networks, you have these options:
 
-### Using Certificates
-Once deployed, you can create certificates for services:
-```yaml
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: dashboard-cert
-  namespace: kubernetes-dashboard
-spec:
-  secretName: dashboard-tls
-  issuerRef:
-    name: letsencrypt-prod
-    kind: ClusterIssuer
-  dnsNames:
-  - dashboard.forge.local
-```
+### Option 1: Use a Real Domain (Recommended)
+1. **Register a real domain** (e.g., `yourdomain.com`)
+2. **Point it to your public IP** or use a dynamic DNS service
+3. **Update the issuer** with your real domain and email
+4. **Access via**: `https://dashboard.yourdomain.com`
+
+### Option 2: Self-Signed Certificates (Current Setup)
+- **Current dashboard** uses self-signed certificates
+- **Access via**: `https://10.10.10.5:30443`
+- **Browser warning**: Accept the certificate manually
+- **Perfect for local development/testing**
+
+### Option 3: Local CA (Advanced)
+- Create your own Certificate Authority
+- Sign certificates for local domains
+- Import CA certificate into browsers
+
+### Option 4: mkcert (Development)
+- Use `mkcert` to create locally-trusted certificates
+- Automatically trusted by browsers
+- Great for development environments
+
+## Current Status
+
+The cert-manager is installed and ready, but the Let's Encrypt issuer needs:
+1. **Real email address** (not `admin@example.com`)
+2. **Public domain** for validation
+3. **DNS configuration** pointing to your cluster
 
 ## Adding New Manifests
 
