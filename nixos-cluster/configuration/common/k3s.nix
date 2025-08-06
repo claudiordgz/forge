@@ -3,6 +3,13 @@
 let
   # Helper function to check if this is the control plane node
   isControlPlane = config.networking.hostName == "vega";
+  
+  # GPU model mapping based on hostname
+  gpuModel = {
+    "vega" = "rtx3060";
+    "rigel" = "rtx3080";
+    "arcturus" = "rtx2080";
+  }.${config.networking.hostName} or "unknown";
 in {
   # Enable k3s service
   services.k3s = {
@@ -23,12 +30,16 @@ in {
       "--flannel-backend=none"  # We'll use calico
       "--cluster-cidr=10.244.0.0/16"
       "--service-cidr=10.96.0.0/12"
+      "--node-label=node.kubernetes.io/role=control-plane"
+      "--node-label=accelerator=nvidia"
+      "--node-label=gpu.model=${gpuModel}"
     ];
     
     # Extra agent args for worker nodes (combined into single definition)
     extraAgentArgs = lib.mkIf (!isControlPlane) [
       "--node-label=node.kubernetes.io/role=worker"
       "--node-label=accelerator=nvidia"
+      "--node-label=gpu.model=${gpuModel}"
     ];
   };
 
@@ -48,12 +59,10 @@ in {
   # Networking configuration for k3s
   networking = {
     firewall = {
-      # Allow k3s API server
-      allowedTCPPorts = lib.mkIf isControlPlane [ 6443 ];
+      # Allow k3s API server (control plane only)
+      allowedTCPPorts = lib.mkIf isControlPlane [ 6443 ] ++ [ 10250 ];
       # Allow k3s node communication
       allowedUDPPorts = [ 8472 51820 ];
-      # Allow k3s metrics
-      allowedTCPPorts = config.networking.firewall.allowedTCPPorts ++ [ 10250 ];
     };
   };
 

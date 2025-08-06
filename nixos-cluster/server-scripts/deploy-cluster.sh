@@ -21,7 +21,16 @@ deploy_node() {
     # SSH to the node and run nixos-rebuild with better error handling
     if ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$SSH_USER@$node" << 'EOF'
         set -e
-        cd /root/forge/nixos-cluster/configuration
+        cd /root/forge
+        
+        # First pull latest changes
+        echo "🔄 Pulling latest changes for $node..."
+        git reset --hard HEAD || true
+        git clean -fd || true
+        git fetch origin main
+        git reset --hard origin/main
+        
+        cd nixos-cluster/configuration
         
         # First do a dry run to catch configuration errors
         echo "🔍 Checking configuration for $node..."
