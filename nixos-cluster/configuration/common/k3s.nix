@@ -11,11 +11,26 @@ let
     "arcturus" = "rtx2080";
   }.${config.networking.hostName} or "unknown";
   
-  # Create extra flags list
-  extraFlagsList = [
-    "--node-label=accelerator=nvidia"
-    "--node-label=gpu.model=${gpuModel}"
-  ];
+  # Create extra flags list based on role
+  extraFlagsList = 
+    if isControlPlane then [
+      # Server (control plane) flags
+      "--disable=traefik"
+      "--disable=servicelb"
+      "--disable=local-storage"
+      "--disable-cloud-controller"
+      "--disable-network-policy"
+      "--flannel-backend=none"
+      "--cluster-cidr=10.244.0.0/16"
+      "--service-cidr=10.96.0.0/12"
+      # GPU labels
+      "--node-label=accelerator=nvidia"
+      "--node-label=gpu.model=${gpuModel}"
+    ] else [
+      # Agent (worker) flags
+      "--node-label=accelerator=nvidia"
+      "--node-label=gpu.model=${gpuModel}"
+    ];
   
   # Convert list to space-separated string
   extraFlagsString = lib.concatStringsSep " " extraFlagsList;
