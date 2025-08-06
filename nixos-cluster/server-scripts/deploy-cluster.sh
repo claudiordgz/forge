@@ -5,6 +5,46 @@
 
 set -e
 
+# Global variables for cleanup
+declare -a BACKGROUND_PIDS=()
+declare -a TEMP_FILES=()
+
+# Graceful exit handler
+cleanup() {
+    echo ""
+    echo "🛑 Received interrupt signal. Cleaning up..."
+    
+    # Kill background processes
+    for pid in "${BACKGROUND_PIDS[@]}"; do
+        if kill -0 "$pid" 2>/dev/null; then
+            echo "🛑 Terminating background process $pid..."
+            kill "$pid" 2>/dev/null || true
+        fi
+    done
+    
+    # Wait for background processes to finish
+    for pid in "${BACKGROUND_PIDS[@]}"; do
+        if kill -0 "$pid" 2>/dev/null; then
+            echo "⏳ Waiting for process $pid to finish..."
+            wait "$pid" 2>/dev/null || true
+        fi
+    done
+    
+    # Clean up temporary files
+    for file in "${TEMP_FILES[@]}"; do
+        if [ -f "$file" ]; then
+            echo "🧹 Cleaning up temporary file: $file"
+            rm -f "$file" 2>/dev/null || true
+        fi
+    done
+    
+    echo "✅ Cleanup completed"
+    exit 1
+}
+
+# Set up signal handlers
+trap cleanup INT TERM
+
 # Configuration
 NODES=("vega" "rigel" "arcturus")
 CONFIG_DIR="configuration"
@@ -21,14 +61,6 @@ deploy_node() {
     
     # For vega (control plane), we need to save the Cloudflare API token to a file
     if [ "$node" = "vega" ]; then
-        echo "🔑 Fetching Cloudflare API token from 1Password..."
-        
-        # Fetch the Cloudflare API token and save it to a file on vega
-        if ! CLOUDFLARE_API_TOKEN=$(op item get cloudflare-locallier.com-token --field password --reveal 2>/dev/null); then
-            echo "❌ Failed to get Cloudflare API token from 1Password"
-            exit 1
-        fi
-        
         echo "📁 Saving Cloudflare API token to vega..."
         ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$SSH_USER@$node" "mkdir -p /var/lib/nixos-cluster/keys && echo '$CLOUDFLARE_API_TOKEN' > /var/lib/nixos-cluster/keys/cloudflare-api-token && chmod 600 /var/lib/nixos-cluster/keys/cloudflare-api-token"
         echo "✅ Saved Cloudflare API token to vega"
@@ -75,6 +107,13 @@ EOF
     fi
 }
 
+# Function to create temporary file
+create_temp_file() {
+    local temp_file=$(mktemp)
+    TEMP_FILES+=("$temp_file")
+    echo "$temp_file"
+}
+
 # Function to check node connectivity
 check_connectivity() {
     local node=$1
@@ -96,6 +135,14 @@ main() {
         echo "🔐  1Password CLI not signed in — signing in…"
         eval "$(op signin --account https://my.1password.com)"
         echo "✅  Signed in."
+    fi
+
+    echo "🔑 Fetching Cloudflare API token from 1Password..."
+        
+    # Fetch the Cloudflare API token and save it to a file on vega
+    if ! CLOUDFLARE_API_TOKEN=$(op item get cloudflare-locallier.com-token --field password --reveal 2>/dev/null); then
+        echo "❌ Failed to get Cloudflare API token from 1Password"
+        exit 1
     fi
     
     echo "🔍 Checking node connectivity..."
@@ -120,17 +167,24 @@ main() {
     local pids=()
     for node in "${reachable_nodes[@]}"; do
         deploy_node "$node" &
-        pids+=($!)
+        local pid=$!
+        pids+=($pid)
+        BACKGROUND_PIDS+=($pid)
     done
     
     # Wait for all deployments to complete
     local failed=0
     for pid in "${pids[@]}"; do
-        wait $pid
-        if [ $? -ne 0 ]; then
+        if wait $pid; then
+            echo "✅ Background deployment process $pid completed successfully"
+        else
+            echo "❌ Background deployment process $pid failed"
             failed=1
         fi
     done
+    
+    # Clear background PIDs array since these processes are done
+    BACKGROUND_PIDS=()
     
     echo ""
     if [ $failed -eq 0 ]; then
@@ -197,6 +251,10 @@ main() {
         echo "⚠️  Some deployments failed. Check the output above."
         exit 1
     fi
+    
+    # Final cleanup
+    echo ""
+    echo "🧹 Final cleanup completed"
 }
 
 # Parse command line arguments
