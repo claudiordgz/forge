@@ -11,6 +11,9 @@ in {
   networking.networkmanager.enable = true;
 
   nixpkgs.config.allowUnfree = true;
+  environment.variables = {
+    K3S_KUBECONFIG_MODE = "644";
+  };
 
   # GL userspace (old-style names; fine on 24.05/24.11)
   hardware.opengl = {
@@ -35,7 +38,7 @@ in {
     podman-compose
     opentofu
     age
-    kubectl
+    k3s helm kubectl kubernetes-helm
     ethtool iperf3 speedtest-cli
     parted lvm2 btrfs-progs nvme-cli
     glxinfo mesa-demos pciutils

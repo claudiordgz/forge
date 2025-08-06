@@ -14,19 +14,6 @@ in {
   # Enable k3s service
   services.k3s.enable = true;
 
-  # Environment variables for k3s
-  environment.variables = {
-    K3S_KUBECONFIG_MODE = "644";
-  };
-
-  # Add k3s to system packages
-  environment.systemPackages = with pkgs; [
-    k3s
-    kubectl
-    helm
-    kubernetes-helm
-  ];
-
   # Networking configuration for k3s
   networking = {
     firewall = {
