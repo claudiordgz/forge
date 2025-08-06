@@ -75,8 +75,11 @@ in {
         iptables -A nixos-fw -p tcp --dport 30443 -s 10.10.10.0/24 -j nixos-fw-accept
         
         # Allow nginx-ingress controller ports for Let's Encrypt HTTP-01 challenges
-        iptables -A nixos-fw -p tcp --dport 30387 -j nixos-fw-accept
-        iptables -A nixos-fw -p tcp --dport 31003 -j nixos-fw-accept
+        iptables -A nixos-fw -p tcp --dport 31025 -j nixos-fw-accept
+        iptables -A nixos-fw -p tcp --dport 31683 -j nixos-fw-accept
+        
+        # Allow nginx-ingress health check port
+        iptables -A nixos-fw -p tcp --dport 10254 -j nixos-fw-accept
       '';
     };
   };
