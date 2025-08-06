@@ -12,14 +12,7 @@ let
   }.${config.networking.hostName} or "unknown";
 in {
   # Enable k3s service
-  services.k3s = {
-    enable = true;
-    role = if isControlPlane then "server" else "agent";
-    
-    # Server (control plane) configuration
-    serverAddr = if isControlPlane then null else "https://10.10.10.5:6443";
-    tokenFile = if isControlPlane then null else "/var/lib/rancher/k3s/server/node-token";
-  };
+  services.k3s.enable = true;
 
   # Environment variables for k3s
   environment.variables = {
