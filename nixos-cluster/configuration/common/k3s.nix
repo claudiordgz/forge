@@ -21,7 +21,7 @@ in {
     tokenFile = if isControlPlane then null else "/var/lib/rancher/k3s/server/node-token";
     
     # Extra args for all nodes
-    extraArgs = [
+    extraFlags = [
       "--node-label=accelerator=nvidia"
       "--node-label=gpu.model=${gpuModel}"
     ] ++ (if isControlPlane then [
