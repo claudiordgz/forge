@@ -19,4 +19,4 @@ spec:
         cnameStrategy: Follow
       selector:
         dnsZones:
-        - "forge.local" 
+        - "locallier.com" 

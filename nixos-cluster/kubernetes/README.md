@@ -24,48 +24,53 @@ This directory contains Kubernetes manifests that are automatically deployed wit
 ### `letsencrypt-issuer.yaml`
 - **Purpose**: Let's Encrypt ClusterIssuer for SSL certificates
 - **Configuration**:
-  - Uses DNS-01 challenge for local domain `forge.local`
-  - Email: admin@example.com (placeholder - needs real email)
+  - Uses DNS-01 challenge for domain `locallier.com`
+  - Email: claudio.rdgz+forge@gmail.com
   - Production Let's Encrypt server
+
+### `dashboard-certificate.yaml`
+- **Purpose**: SSL certificate for the Kubernetes Dashboard
+- **Domain**: dashboard.locallier.com, k8s.locallier.com
+- **Automatic renewal**: Managed by cert-manager
 
 ## Deployment
 
-These manifests are automatically deployed by the NixOS configuration in `configuration/common/k3s.nix` when the cluster starts.
+These manifests are automatically deployed by the NixOS configuration:
+
+- **Shared k3s configuration**: `configuration/common/k3s.nix` (k3s service, containerd, firewall)
+- **Control plane services**: `configuration/hosts/vega/k3s.nix` (dashboard, cert-manager, Let's Encrypt)
+- **Worker nodes**: Only get the shared k3s configuration
+
+The control plane services (dashboard, cert-manager, certificates) are only deployed on the vega node.
 
 ## SSL Certificate Setup
 
-### ⚠️ Important Note: Let's Encrypt Limitations
+### ✅ Let's Encrypt with locallier.com
 
-**Let's Encrypt requires a publicly accessible domain** for certificate validation. For local networks, you have these options:
+**Your setup is now configured for production SSL certificates!**
 
-### Option 1: Use a Real Domain (Recommended)
-1. **Register a real domain** (e.g., `yourdomain.com`)
-2. **Point it to your public IP** or use a dynamic DNS service
-3. **Update the issuer** with your real domain and email
-4. **Access via**: `https://dashboard.yourdomain.com`
+### Domain Configuration
+1. **DNS Records**: Point these subdomains to your cluster IP:
+   ```
+   dashboard.locallier.com  →  10.10.10.5
+   k8s.locallier.com        →  10.10.10.5
+   ```
 
-### Option 2: Self-Signed Certificates (Current Setup)
-- **Current dashboard** uses self-signed certificates
-- **Access via**: `https://10.10.10.5:30443`
-- **Browser warning**: Accept the certificate manually
-- **Perfect for local development/testing**
+2. **Certificate Management**:
+   - cert-manager automatically requests certificates from Let's Encrypt
+   - Uses DNS-01 challenge for validation
+   - Certificates auto-renew before expiration
+   - Stored in Kubernetes secrets
 
-### Option 3: Local CA (Advanced)
-- Create your own Certificate Authority
-- Sign certificates for local domains
-- Import CA certificate into browsers
+### Access URLs
+- **Dashboard**: https://dashboard.locallier.com
+- **Alternative**: https://k8s.locallier.com
 
-### Option 4: mkcert (Development)
-- Use `mkcert` to create locally-trusted certificates
-- Automatically trusted by browsers
-- Great for development environments
-
-## Current Status
-
-The cert-manager is installed and ready, but the Let's Encrypt issuer needs:
-1. **Real email address** (not `admin@example.com`)
-2. **Public domain** for validation
-3. **DNS configuration** pointing to your cluster
+### Current Status
+- ✅ **cert-manager** installed and running
+- ✅ **Let's Encrypt issuer** configured for locallier.com
+- ✅ **Dashboard certificate** will be created automatically
+- ✅ **Infrastructure as code** (reproducible)
 
 ## Adding New Manifests
 

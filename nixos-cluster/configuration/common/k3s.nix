@@ -31,15 +31,6 @@ let
   
   # Convert list to space-separated string
   extraFlagsString = lib.concatStringsSep " " extraFlagsList;
-
-  # Path to the dashboard manifest file
-  dashboardManifestFile = ../../kubernetes/dashboard.yaml;
-
-  # Path to cert-manager manifest file
-  certManagerManifestFile = ../../kubernetes/cert-manager.yaml;
-
-  # Path to Let's Encrypt issuer manifest file
-  letsencryptIssuerManifestFile = ../../kubernetes/letsencrypt-issuer.yaml;
 in {
   # Enable k3s service
   services.k3s = {
@@ -52,48 +43,6 @@ in {
     
     # Extra flags as a single string
     extraFlags = extraFlagsString;
-  };
-
-  # Deploy Kubernetes Dashboard automatically when k3s starts
-  systemd.services.k3s-dashboard = lib.mkIf isControlPlane {
-    description = "Deploy Kubernetes Dashboard";
-    wantedBy = [ "k3s.service" ];
-    after = [ "k3s.service" ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
-      ExecStart = "${pkgs.kubectl}/bin/kubectl apply -f ${dashboardManifestFile}";
-      ExecStop = "${pkgs.kubectl}/bin/kubectl delete -f ${dashboardManifestFile} --ignore-not-found=true";
-    };
-  };
-
-  # Deploy cert-manager automatically when k3s starts
-  systemd.services.k3s-cert-manager = lib.mkIf isControlPlane {
-    description = "Deploy cert-manager";
-    wantedBy = [ "k3s.service" ];
-    after = [ "k3s.service" ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
-      ExecStart = "${pkgs.kubectl}/bin/kubectl apply -f ${certManagerManifestFile}";
-      ExecStop = "${pkgs.kubectl}/bin/kubectl delete -f ${certManagerManifestFile} --ignore-not-found=true";
-    };
-  };
-
-  # Deploy Let's Encrypt issuer after cert-manager
-  systemd.services.k3s-letsencrypt-issuer = lib.mkIf isControlPlane {
-    description = "Deploy Let's Encrypt ClusterIssuer";
-    wantedBy = [ "k3s-cert-manager.service" ];
-    after = [ "k3s-cert-manager.service" ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
-      ExecStart = "${pkgs.kubectl}/bin/kubectl apply -f ${letsencryptIssuerManifestFile}";
-      ExecStop = "${pkgs.kubectl}/bin/kubectl delete -f ${letsencryptIssuerManifestFile} --ignore-not-found=true";
-    };
   };
 
   # Configure containerd for k3s (k3s needs containerd, not podman)
