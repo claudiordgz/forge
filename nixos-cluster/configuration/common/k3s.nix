@@ -19,6 +19,16 @@ in {
     # Server (control plane) configuration - only set for agent nodes
     serverAddr = lib.mkIf (!isControlPlane) "https://10.10.10.5:6443";
     tokenFile = lib.mkIf (!isControlPlane) "/var/lib/rancher/k3s/server/node-token";
+    
+    # Extra flags for all nodes (conditional based on role)
+    extraFlags = 
+      if isControlPlane then [
+        "--node-label=accelerator=nvidia"
+        "--node-label=gpu.model=${gpuModel}"
+      ] else [
+        "--node-label=accelerator=nvidia"
+        "--node-label=gpu.model=${gpuModel}"
+      ];
   };
 
   # Configure containerd for k3s (k3s needs containerd, not podman)
