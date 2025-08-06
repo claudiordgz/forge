@@ -50,8 +50,9 @@ spec:
         - containerPort: 8443
           protocol: TCP
         args:
-        - --auto-generate-certificates
         - --namespace=kubernetes-dashboard
+        - --tls-cert-file=/certs/tls.crt
+        - --tls-key-file=/certs/tls.key
         volumeMounts:
         - name: kubernetes-dashboard-certs
           mountPath: /certs
@@ -62,7 +63,7 @@ spec:
       volumes:
       - name: kubernetes-dashboard-certs
         secret:
-          secretName: kubernetes-dashboard-certs
+          secretName: dashboard-tls
       - name: kubernetes-dashboard-csrf
         secret:
           secretName: kubernetes-dashboard-csrf
