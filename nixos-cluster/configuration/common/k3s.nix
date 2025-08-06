@@ -52,7 +52,7 @@ in {
   networking = {
     firewall = {
       # Allow SSH from anywhere (needed for remote management)
-      allowedTCPPorts = [ 22 ];
+      allowedTCPPorts = [ 22 443 ];
       
       # Allow k3s ports only from local network
       extraCommands = ''
