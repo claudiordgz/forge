@@ -56,6 +56,7 @@ in {
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
+      Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
       ExecStart = "${pkgs.kubectl}/bin/kubectl apply -f ${dashboardManifestFile}";
       ExecStop = "${pkgs.kubectl}/bin/kubectl delete -f ${dashboardManifestFile} --ignore-not-found=true";
     };
