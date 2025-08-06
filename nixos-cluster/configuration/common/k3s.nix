@@ -16,9 +16,9 @@ in {
     enable = true;
     role = if isControlPlane then "server" else "agent";
     
-    # Server (control plane) configuration
-    serverAddr = if isControlPlane then null else "https://10.10.10.5:6443";
-    tokenFile = if isControlPlane then null else "/var/lib/rancher/k3s/server/node-token";
+    # Server (control plane) configuration - only set for agent nodes
+    serverAddr = lib.mkIf (!isControlPlane) "https://10.10.10.5:6443";
+    tokenFile = lib.mkIf (!isControlPlane) "/var/lib/rancher/k3s/server/node-token";
   };
 
   # Configure containerd for k3s (k3s needs containerd, not podman)
