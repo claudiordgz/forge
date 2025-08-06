@@ -59,13 +59,6 @@ deploy_node() {
     local node=$1
     echo "📦 Deploying to $node..."
     
-    # For vega (control plane), we need to save the Cloudflare API token to a file
-    if [ "$node" = "vega" ]; then
-        echo "📁 Saving Cloudflare API token to vega..."
-        ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$SSH_USER@$node" "mkdir -p /var/lib/nixos-cluster/keys && echo '$CLOUDFLARE_API_TOKEN' > /var/lib/nixos-cluster/keys/cloudflare-api-token && chmod 600 /var/lib/nixos-cluster/keys/cloudflare-api-token"
-        echo "✅ Saved Cloudflare API token to vega"
-    fi
-    
     # SSH to the node and run nixos-rebuild with better error handling
     if ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$SSH_USER@$node" << EOF
         set -e
@@ -128,6 +121,14 @@ check_connectivity() {
     fi
 }
 
+save_cloudflare_api_token() {
+    local node=$1
+    local token=$2
+    echo "📁 Saving Cloudflare API token to $node..."
+    ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$SSH_USER@$node" "mkdir -p /var/lib/nixos-cluster/keys && echo '$token' > /var/lib/nixos-cluster/keys/cloudflare-api-token && chmod 600 /var/lib/nixos-cluster/keys/cloudflare-api-token"
+    echo "✅ Saved Cloudflare API token to $node"
+}
+
 # Main deployment logic
 main() {
     # Check if 1Password CLI is signed in, sign in if not
@@ -138,13 +139,15 @@ main() {
     fi
 
     echo "🔑 Fetching Cloudflare API token from 1Password..."
-        
-    # Fetch the Cloudflare API token and save it to a file on vega
-    if ! CLOUDFLARE_API_TOKEN=$(op item get cloudflare-locallier.com-token --field password --reveal 2>/dev/null); then
+    echo
+    CLOUDFLARE_API_TOKEN=$(op item get "cloudflare-locallier.com-token" --format json --reveal | jq -r '.fields[] | select(.id == "password") | .value')
+    if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
         echo "❌ Failed to get Cloudflare API token from 1Password"
         exit 1
     fi
-    
+    echo "✅ Got Cloudflare API token from 1Password"
+    save_cloudflare_api_token "vega" "$CLOUDFLARE_API_TOKEN"
+
     echo "🔍 Checking node connectivity..."
     local reachable_nodes=()
     
