@@ -31,6 +31,9 @@ let
   
   # Convert list to space-separated string
   extraFlagsString = lib.concatStringsSep " " extraFlagsList;
+
+  # Path to the dashboard manifest file
+  dashboardManifestFile = ../../kubernetes/dashboard.yaml;
 in {
   # Enable k3s service
   services.k3s = {
@@ -43,6 +46,19 @@ in {
     
     # Extra flags as a single string
     extraFlags = extraFlagsString;
+  };
+
+  # Deploy Kubernetes Dashboard automatically when k3s starts
+  systemd.services.k3s-dashboard = lib.mkIf isControlPlane {
+    description = "Deploy Kubernetes Dashboard";
+    wantedBy = [ "k3s.service" ];
+    after = [ "k3s.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = "${pkgs.kubectl}/bin/kubectl apply -f ${dashboardManifestFile}";
+      ExecStop = "${pkgs.kubectl}/bin/kubectl delete -f ${dashboardManifestFile} --ignore-not-found=true";
+    };
   };
 
   # Configure containerd for k3s (k3s needs containerd, not podman)
@@ -71,6 +87,8 @@ in {
         iptables -A nixos-fw -p udp --dport 51820 -s 10.10.10.0/24 -j nixos-fw-accept
         ip6tables -A nixos-fw -p udp --dport 8472 -j nixos-fw-accept
         ip6tables -A nixos-fw -p udp --dport 51820 -j nixos-fw-accept
+        # Allow Kubernetes Dashboard access
+        iptables -A nixos-fw -p tcp --dport 30443 -s 10.10.10.0/24 -j nixos-fw-accept
       '';
     };
   };
