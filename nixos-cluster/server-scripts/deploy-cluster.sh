@@ -19,6 +19,27 @@ deploy_node() {
     local node=$1
     echo "📦 Deploying to $node..."
     
+    # For vega (control plane), we need to pass the Cloudflare API token
+    local env_vars=""
+    if [ "$node" = "vega" ]; then
+        echo "🔑 Fetching Cloudflare API token from 1Password..."
+        
+        # Check if 1Password CLI is signed in, sign in if not
+        if ! op whoami &>/dev/null; then
+            echo "🔐  1Password CLI not signed in — signing in…"
+            eval "$(op signin --account https://my.1password.com)"
+            echo "✅  Signed in."
+        fi
+        
+        # Fetch the Cloudflare API token
+        if ! CLOUDFLARE_API_TOKEN=$(op item get cloudflare-locallier.com-token --field password --reveal 2>/dev/null); then
+            echo "❌ Failed to get Cloudflare API token from 1Password"
+            exit 1
+        fi
+        env_vars="CLOUDFLARE_API_TOKEN='$CLOUDFLARE_API_TOKEN'"
+        echo "✅ Got Cloudflare API token from 1Password"
+    fi
+    
     # SSH to the node and run nixos-rebuild with better error handling
     if ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$SSH_USER@$node" << EOF
         set -e
@@ -44,7 +65,7 @@ deploy_node() {
         
         # If dry run succeeds, do the actual deployment
         echo "🚀 Applying configuration to \$NODE_NAME..."
-        if ! sudo nixos-rebuild switch --flake .#\$NODE_NAME >> /tmp/deploy.log 2>&1; then
+        if ! sudo -E $env_vars nixos-rebuild switch --flake .#\$NODE_NAME >> /tmp/deploy.log 2>&1; then
             echo "❌ Deployment failed for \$NODE_NAME:"
             cat /tmp/deploy.log
             exit 1

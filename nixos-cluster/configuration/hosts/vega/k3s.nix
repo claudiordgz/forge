@@ -41,11 +41,37 @@ in {
     };
   };
 
-  # Deploy nginx-ingress after cert-manager
-  systemd.services.k3s-nginx-ingress = {
-    description = "Deploy nginx-ingress controller";
+  # Deploy Cloudflare API token secret using environment variable after cert-manager
+  systemd.services.k3s-cloudflare-secret = {
+    description = "Deploy Cloudflare API Token Secret from Environment";
     wantedBy = [ "k3s-cert-manager.service" ];
     after = [ "k3s-cert-manager.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
+      ExecStart = pkgs.writeShellScript "create-cloudflare-secret" ''
+        # Check if CLOUDFLARE_API_TOKEN is set
+        if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+          echo "Error: CLOUDFLARE_API_TOKEN environment variable is not set"
+          exit 1
+        fi
+        
+        # Create the secret directly with kubectl
+        ${pkgs.kubectl}/bin/kubectl create secret generic cloudflare-api-token-secret \
+          --namespace=cert-manager \
+          --from-literal=api-token="$CLOUDFLARE_API_TOKEN" \
+          --dry-run=client -o yaml | ${pkgs.kubectl}/bin/kubectl apply -f -
+      '';
+      ExecStop = "${pkgs.kubectl}/bin/kubectl delete secret cloudflare-api-token-secret -n cert-manager --ignore-not-found=true";
+    };
+  };
+
+  # Deploy nginx-ingress after cloudflare secret
+  systemd.services.k3s-nginx-ingress = {
+    description = "Deploy nginx-ingress controller";
+    wantedBy = [ "k3s-cloudflare-secret.service" ];
+    after = [ "k3s-cloudflare-secret.service" ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;

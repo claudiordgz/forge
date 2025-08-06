@@ -11,8 +11,11 @@ spec:
     # Name of a secret used to store the ACME account private key
     privateKeySecretRef:
       name: letsencrypt-prod
-    # Add a single challenge solver, HTTP01 will be used
+    # Add a single challenge solver, DNS01 will be used
     solvers:
-    - http01:
-        ingress:
-          class: nginx 
+    - dns01:
+        cloudflare:
+          email: claudio.rdgz+forge@gmail.com
+          apiTokenSecretRef:
+            name: cloudflare-api-token-secret
+            key: api-token 
