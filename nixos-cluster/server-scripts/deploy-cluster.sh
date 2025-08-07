@@ -89,8 +89,6 @@ deploy_node() {
             cat /tmp/deploy.log
             exit 1
         fi
-        
-        echo "✅ \$NODE_NAME deployed successfully"
 EOF
     then
         echo "✅ $node deployed successfully"
@@ -164,7 +162,6 @@ main() {
         sign_in_to_1password
     fi
     
-    echo "✅ Got Cloudflare API token from 1Password"
     save_cloudflare_api_token "vega" "$CLOUDFLARE_API_TOKEN"
 
     echo "🔍 Checking node connectivity..."
