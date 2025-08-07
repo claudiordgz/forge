@@ -20,6 +20,10 @@ let
       "--disable=local-storage"
       "--disable-cloud-controller"
       "--disable-network-policy"
+      # add to the isControlPlane branch
+      "--flannel-backend=vxlan"
+      "--cluster-cidr=10.42.0.0/16"
+      "--service-cidr=10.43.0.0/16"
       # GPU labels
       "--node-label=accelerator=nvidia"
       "--node-label=gpu.model=${gpuModel}"
@@ -48,11 +52,19 @@ in {
   # Configure containerd for k3s (k3s needs containerd, not podman)
   virtualisation.containerd.enable = true;
 
+  boot.kernel.sysctl = {
+    "net.ipv4.ip_forward" = 1;
+    "net.bridge.bridge-nf-call-iptables" = 1;
+    "net.ipv4.conf.all.rp_filter" = 0;
+  };
+
   # Networking configuration for k3s
   networking = {
     firewall = {
+      trustedInterfaces = [ "cni0" "flannel.1" "kube-ipvs0" ];
       # Allow SSH from anywhere (needed for remote management)
       allowedTCPPorts = [ 22 80 443 ];
+      allowedUDPPorts = [ 8472 ]; # flannel VXLAN
       
       # Allow k3s ports only from local network
       extraCommands = ''

@@ -53,6 +53,7 @@ in {
 
   # Load NVIDIA kernel module even on headless nodes
   services.xserver.videoDrivers = [ "nvidia" ];
+  services.openiscsi.enable = true;
 
   hardware.nvidia = {
     package = config.boot.kernelPackages.nvidiaPackages.production;
