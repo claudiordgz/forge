@@ -29,3 +29,7 @@ echo "- Manage deployments"
 echo "- GPU node information"
 echo ""
 echo "🔒 Security Note: Dashboard is only accessible from your local network (10.10.10.0/24)" 
+
+ssh vega 'kubectl -n kubernetes-dashboard create token kubernetes-dashboard' | pbcopy
+echo "Token copied to clipboard"
+echo "Paste it into the dashboard login page"
