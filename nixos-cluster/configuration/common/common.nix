@@ -38,7 +38,7 @@ in {
     podman-compose
     opentofu
     age
-    open-iscsi
+    openiscsi
     k3s helm kubectl kubernetes-helm
     ethtool iperf3 speedtest-cli
     parted lvm2 btrfs-progs nvme-cli
