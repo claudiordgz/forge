@@ -6,7 +6,7 @@ This directory contains Kubernetes manifests that are automatically deployed wit
 
 ### `dashboard.yaml`
 - **Purpose**: Kubernetes Dashboard for web-based cluster monitoring
-- **Access**: https://10.10.10.5:30443
+- **Access**: https://10.10.10.5:30443 or https://dashboard.locallier.com
 - **Features**: 
   - View nodes, pods, services, deployments
   - Monitor resource usage
