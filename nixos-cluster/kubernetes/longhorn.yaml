@@ -1,0 +1,22 @@
+# Longhorn distributed storage system
+# This file contains the Longhorn deployment manifest
+# Deployed via NixOS systemd service on vega
+
+# Note: The actual Longhorn deployment is done via kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml
+# This file serves as documentation and can be used for custom configurations if needed
+
+# Longhorn will be deployed with default settings
+# - Uses local storage on each node
+# - Replicates data across nodes for high availability
+# - Provides distributed block storage for Kubernetes workloads
+# - Includes web UI for management
+
+# To access Longhorn UI:
+# kubectl -n longhorn-system get svc longhorn-frontend
+# kubectl -n longhorn-system port-forward svc/longhorn-frontend 8080:80
+
+# To configure storage backends on specific nodes:
+# 1. Access Longhorn UI
+# 2. Go to Node tab
+# 3. Click on a node
+# 4. Add disk path (e.g., /mnt/storage on vega and rigel)

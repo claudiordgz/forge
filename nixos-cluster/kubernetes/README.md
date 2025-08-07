@@ -33,6 +33,15 @@ This directory contains Kubernetes manifests that are automatically deployed wit
 - **Domain**: dashboard.locallier.com, k8s.locallier.com
 - **Automatic renewal**: Managed by cert-manager
 
+### `longhorn.yaml`
+- **Purpose**: Longhorn distributed storage system
+- **Features**:
+  - Distributed block storage across cluster nodes
+  - Data replication for high availability
+  - Web UI for storage management
+  - Uses local drives on vega (476.9 GB) and rigel (931.5 GB)
+- **Access**: Port-forward to longhorn-frontend service
+
 ## Deployment
 
 These manifests are automatically deployed by the NixOS configuration:
@@ -41,7 +50,7 @@ These manifests are automatically deployed by the NixOS configuration:
 - **Control plane services**: `configuration/hosts/vega/k3s.nix` (dashboard, cert-manager, Let's Encrypt)
 - **Worker nodes**: Only get the shared k3s configuration
 
-The control plane services (dashboard, cert-manager, certificates) are only deployed on the vega node.
+The control plane services (dashboard, cert-manager, certificates, longhorn) are only deployed on the vega node.
 
 ## SSL Certificate Setup
 
@@ -71,6 +80,49 @@ The control plane services (dashboard, cert-manager, certificates) are only depl
 - ✅ **Let's Encrypt issuer** configured for locallier.com
 - ✅ **Dashboard certificate** will be created automatically
 - ✅ **Infrastructure as code** (reproducible)
+
+## Longhorn Storage Setup
+
+### ✅ Distributed Storage with Longhorn
+
+**Your cluster now has distributed storage capabilities!**
+
+### Storage Configuration
+1. **Available Drives**:
+   - **vega**: 476.9 GB unused drive (`/dev/nvme0n1`)
+   - **rigel**: 931.5 GB unused drive (`/dev/nvme0n1`)
+
+2. **Longhorn Features**:
+   - Distributed block storage across all nodes
+   - Automatic data replication for high availability
+   - Web UI for storage management
+   - Persistent volumes for Kubernetes workloads
+
+### Access Longhorn UI
+```bash
+# Port-forward to access the web UI
+kubectl -n longhorn-system port-forward svc/longhorn-frontend 8080:80
+```
+Then visit: http://localhost:8080
+
+### Configure Storage Backends
+1. Access Longhorn UI
+2. Go to **Node** tab
+3. Click on a node (vega/rigel)
+4. Add disk path (e.g., `/mnt/storage`)
+5. Mount the unused drives:
+   ```bash
+   # On vega
+   sudo mkdir -p /mnt/storage && sudo mount /dev/nvme0n1 /mnt/storage
+   
+   # On rigel  
+   sudo mkdir -p /mnt/storage && sudo mount /dev/nvme0n1 /mnt/storage
+   ```
+
+### Current Status
+- ✅ **Longhorn** will be deployed automatically
+- ✅ **Infrastructure as code** (reproducible)
+- ⏳ **Storage backends** need to be configured after deployment
 
 ## Adding New Manifests
 

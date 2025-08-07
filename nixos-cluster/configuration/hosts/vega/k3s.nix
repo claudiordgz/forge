@@ -13,6 +13,9 @@ let
   # Path to nginx-ingress manifest file
   nginxIngressManifestFile = ../../../kubernetes/nginx-ingress.yaml;
 
+  # Path to Longhorn manifest file
+  longhornManifestFile = ../../../kubernetes/longhorn.yaml;
+
   # Path to the keys directory from the flake input
   keysDir = inputs.keys;
 in {
@@ -112,6 +115,20 @@ in {
       Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
       ExecStart = "${pkgs.kubectl}/bin/kubectl apply -f ${dashboardCertificateManifestFile}";
       ExecStop = "${pkgs.kubectl}/bin/kubectl delete -f ${dashboardCertificateManifestFile} --ignore-not-found=true";
+    };
+  };
+
+  # Deploy Longhorn distributed storage system
+  systemd.services.k3s-longhorn = {
+    description = "Deploy Longhorn Distributed Storage";
+    wantedBy = [ "k3s-cert-manager.service" ];
+    after = [ "k3s-cert-manager.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
+      ExecStart = "${pkgs.kubectl}/bin/kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml";
+      ExecStop = "${pkgs.kubectl}/bin/kubectl delete -f https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml --ignore-not-found=true";
     };
   };
 } 
