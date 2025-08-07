@@ -16,6 +16,9 @@ let
   # Path to Longhorn manifest file
   longhornManifestFile = ../../../kubernetes/longhorn.yaml;
 
+  # Path to Longhorn NodePort service file
+  longhornNodePortServiceFile = ../../../kubernetes/longhorn-nodeport-service.yaml;
+
   # Path to the keys directory from the flake input
   keysDir = inputs.keys;
 in {
@@ -145,10 +148,8 @@ in {
         # Wait for Longhorn to be ready
         ${pkgs.kubectl}/bin/kubectl wait --for=condition=ready pod -l app=longhorn-ui -n longhorn-system --timeout=300s
         
-        # Patch the service to use NodePort
-        ${pkgs.kubectl}/bin/kubectl patch svc longhorn-frontend -n longhorn-system \
-          --type='merge' \
-          -p='{"spec":{"type":"NodePort","ports":[{"port":80,"targetPort":80,"nodePort":30880}]}}'
+        # Apply the NodePort service
+        ${pkgs.kubectl}/bin/kubectl apply -f ${longhornNodePortServiceFile}
       '';
     };
   };

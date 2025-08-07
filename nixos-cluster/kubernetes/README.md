@@ -101,14 +101,10 @@ The control plane services (dashboard, cert-manager, certificates, longhorn) are
 
 ### Access Longhorn UI
 ```bash
-# Option 1: Port-forward (local access only)
+# Port-forward to access the web UI
 kubectl -n longhorn-system port-forward svc/longhorn-frontend 8080:80
-# Then visit: http://localhost:8080
-
-# Option 2: LAN access (recommended)
-# Longhorn UI is exposed on NodePort 30880
-# Visit: http://10.10.10.5:30880
 ```
+Then visit: http://localhost:8080
 
 ### Configure Storage Backends
 1. Access Longhorn UI
