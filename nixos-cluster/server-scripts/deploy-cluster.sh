@@ -133,6 +133,8 @@ sign_in_to_1password() {
     echo "🔐 Not signed in to 1Password CLI"
     echo "Please run: eval \"\$(op signin --account https://my.1password.com)\""
     echo "Then run this script again."
+    echo "eval \"\$(op signin --account https://my.1password.com)\"" | pbcopy
+    echo "Command copied to clipboard, paste it into your terminal and login to 1Password"
     exit 1
 }
 
