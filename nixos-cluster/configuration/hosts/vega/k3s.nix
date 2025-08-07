@@ -131,4 +131,25 @@ in {
       ExecStop = "${pkgs.kubectl}/bin/kubectl delete -f https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml --ignore-not-found=true";
     };
   };
+
+  # Configure Longhorn UI NodePort after Longhorn deployment
+  systemd.services.k3s-longhorn-nodeport = {
+    description = "Configure Longhorn UI NodePort";
+    wantedBy = [ "k3s-longhorn.service" ];
+    after = [ "k3s-longhorn.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
+      ExecStart = pkgs.writeShellScript "configure-longhorn-nodeport" ''
+        # Wait for Longhorn to be ready
+        ${pkgs.kubectl}/bin/kubectl wait --for=condition=ready pod -l app=longhorn-ui -n longhorn-system --timeout=300s
+        
+        # Patch the service to use NodePort
+        ${pkgs.kubectl}/bin/kubectl patch svc longhorn-frontend -n longhorn-system \
+          --type='merge' \
+          -p='{"spec":{"type":"NodePort","ports":[{"port":80,"targetPort":80,"nodePort":30880}]}}'
+      '';
+    };
+  };
 } 

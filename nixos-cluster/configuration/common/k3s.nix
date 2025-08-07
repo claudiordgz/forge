@@ -89,6 +89,11 @@ in {
         iptables -A nixos-fw -p tcp --dport 31852 -j nixos-fw-accept
         iptables -A nixos-fw -p tcp --dport 30886 -j nixos-fw-accept
         
+        # Allow Longhorn internal communication ports
+        iptables -A nixos-fw -p tcp --dport 9500 -j nixos-fw-accept
+        iptables -A nixos-fw -p tcp --dport 9502 -j nixos-fw-accept
+        iptables -A nixos-fw -p tcp --dport 9503 -j nixos-fw-accept
+        
         # Allow additional Kubernetes ports
         iptables -A nixos-fw -p tcp --dport 30000:32767 -j nixos-fw-accept
       '';
