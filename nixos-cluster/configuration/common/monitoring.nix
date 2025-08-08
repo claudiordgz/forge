@@ -41,8 +41,8 @@ in {
     # Values file rendered to /etc so systemd unit can reference it
     environment.etc."monitoring/kps-values.yaml".text = cfg.valuesYAML;
 
-    # Ensure helm is available (kubectl is already provided elsewhere)
-    environment.systemPackages = [ pkgs.helm ];
+    # Ensure Kubernetes Helm is available (avoid GUI 'helm' package)
+    environment.systemPackages = [ pkgs.kubernetes-helm ];
 
     # One-shot installer/upgrader that runs after k3s is online
     systemd.services.kube-prometheus-stack-install = {
@@ -55,7 +55,7 @@ in {
         Restart = "on-failure";
         RestartSec = 10;
       };
-      path = [ pkgs.kubectl pkgs.helm pkgs.coreutils pkgs.gnugrep pkgs.bash ];
+      path = [ pkgs.kubectl pkgs.kubernetes-helm pkgs.coreutils pkgs.gnugrep pkgs.bash ];
       script = ''
         set -euo pipefail
         KCONF=/etc/rancher/k3s/k3s.yaml
