@@ -43,7 +43,6 @@ in {
       RemainAfterExit = true;
       Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
       ExecStart = "${pkgs.kubectl}/bin/kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml";
-      ExecStop = "${pkgs.kubectl}/bin/kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml --ignore-not-found=true";
     };
   };
 
@@ -72,7 +71,6 @@ in {
           --from-literal=api-token="$API_TOKEN" \
           --dry-run=client -o yaml | ${pkgs.kubectl}/bin/kubectl apply -f -
       '';
-      ExecStop = "${pkgs.kubectl}/bin/kubectl delete secret cloudflare-api-token-secret -n cert-manager --ignore-not-found=true";
     };
   };
 
@@ -86,7 +84,6 @@ in {
       RemainAfterExit = true;
       Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
       ExecStart = "${pkgs.kubectl}/bin/kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.1/deploy/static/provider/baremetal/deploy.yaml --validate=false";
-      ExecStop = "${pkgs.kubectl}/bin/kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.1/deploy/static/provider/baremetal/deploy.yaml --ignore-not-found=true";
     };
   };
 
