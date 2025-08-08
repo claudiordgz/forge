@@ -83,31 +83,15 @@ in {
         iptables -A nixos-fw -p udp --dport 51820 -s 10.10.10.0/24 -j nixos-fw-accept
         ip6tables -A nixos-fw -p udp --dport 8472 -j nixos-fw-accept
         ip6tables -A nixos-fw -p udp --dport 51820 -j nixos-fw-accept
-        # Allow Kubernetes Dashboard access
-        iptables -A nixos-fw -p tcp --dport 30443 -s 10.10.10.0/24 -j nixos-fw-accept
-        
-        # Allow nginx-ingress controller ports for Let's Encrypt HTTP-01 challenges
-        iptables -A nixos-fw -p tcp --dport 31025 -j nixos-fw-accept
-        iptables -A nixos-fw -p tcp --dport 31683 -j nixos-fw-accept
-        
         # Allow nginx-ingress health check port
         iptables -A nixos-fw -p tcp --dport 10254 -j nixos-fw-accept
-        
-        # Allow HTTP-01 challenge solver ports
-        iptables -A nixos-fw -p tcp --dport 30785 -j nixos-fw-accept
-        iptables -A nixos-fw -p tcp --dport 30319 -j nixos-fw-accept
-        
-        # Allow Traefik LoadBalancer ports
-        iptables -A nixos-fw -p tcp --dport 31852 -j nixos-fw-accept
-        iptables -A nixos-fw -p tcp --dport 30886 -j nixos-fw-accept
         
         # Allow Longhorn internal communication ports
         iptables -A nixos-fw -p tcp --dport 9500 -j nixos-fw-accept
         iptables -A nixos-fw -p tcp --dport 9502 -j nixos-fw-accept
         iptables -A nixos-fw -p tcp --dport 9503 -j nixos-fw-accept
         
-        # Allow additional Kubernetes ports
-        iptables -A nixos-fw -p tcp --dport 30000:32767 -j nixos-fw-accept
+        # With MetalLB, no need to open ephemeral NodePorts broadly
       '';
     };
   };

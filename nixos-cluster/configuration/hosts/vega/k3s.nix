@@ -16,8 +16,7 @@ let
   # Path to Longhorn manifest file
   longhornManifestFile = ../../../kubernetes/longhorn.yaml;
 
-  # Path to Longhorn NodePort service file
-  longhornNodePortServiceFile = ../../../kubernetes/longhorn-nodeport-service.yaml;
+  # Longhorn UI will be exposed via Ingress through MetalLB; NodePort no longer used
 
   # Path to Longhorn ingress
   longhornIngressManifestFile = ../../../kubernetes/longhorn-ingress.yaml;
@@ -201,25 +200,7 @@ in {
     };
   };
 
-  # Configure Longhorn UI NodePort after Longhorn deployment
-  systemd.services.k3s-longhorn-nodeport = {
-    description = "Configure Longhorn UI NodePort";
-    wantedBy = [ "k3s-longhorn.service" ];
-    after = [ "k3s-longhorn.service" ];
-    restartTriggers = [ longhornNodePortServiceFile ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
-      ExecStart = pkgs.writeShellScript "configure-longhorn-nodeport" ''
-        # Wait for Longhorn to be ready
-        ${pkgs.kubectl}/bin/kubectl wait --for=condition=ready pod -l app=longhorn-ui -n longhorn-system --timeout=300s
-        
-        # Apply the NodePort service
-        ${pkgs.kubectl}/bin/kubectl apply --server-side --force-conflicts -f ${longhornNodePortServiceFile}
-      '';
-    };
-  };
+  # Removed NodePort configuration for Longhorn; ingress is used instead
 
   # Longhorn UI Ingress (after nginx and cert-manager)
   systemd.services.k3s-longhorn-ingress = {
