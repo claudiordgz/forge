@@ -62,13 +62,10 @@ check_core_dns() {
   fi
 
   # Ready check
-  local ready
-  ready=$(run "kubectl -n kube-system get pods -l k8s-app=kube-dns -o jsonpath='{range .items[*]}{.status.containerStatuses[0].ready}{"\n"}{end}'" || true)
-  if grep -q '^true$' <<<"$ready"; then
+  if run "kubectl -n kube-system wait --for=condition=Ready pod -l k8s-app=kube-dns --timeout=10s >/dev/null 2>&1"; then
     ok "CoreDNS pod Ready"
   else
     err "CoreDNS not Ready"
-    # Show recent logs (last 40 lines)
     run "kubectl -n kube-system logs -l k8s-app=kube-dns --tail=40 --all-containers" || true
     ((failures++))
   fi
@@ -87,7 +84,7 @@ check_metrics() {
 
   # APIService availability
   local cond
-  cond=$(run "kubectl get apiservice v1beta1.metrics.k8s.io -o jsonpath='{.status.conditions[?(@.type=="Available")].status}'" || true)
+  cond=$(run "kubectl get apiservice v1beta1.metrics.k8s.io -o json | jq -r '.status.conditions[] | select(.type==\"Available\") | .status'" || true)
   if [[ "$cond" == "True" ]]; then
     ok "v1beta1.metrics.k8s.io APIService Available"
   else
@@ -103,9 +100,11 @@ check_dashboard() {
     err "Dashboard namespace or pods missing"; ((failures++)); return
   fi
   # Pod ready
-  local dready
-  dready=$(run "kubectl -n kubernetes-dashboard get pods -l k8s-app=kubernetes-dashboard -o jsonpath='{range .items[*]}{.status.containerStatuses[0].ready}{"\n"}{end}'" || true)
-  if grep -q '^true$' <<<"$dready"; then ok "Dashboard pod Ready"; else err "Dashboard not Ready"; ((failures++)); fi
+  if run "kubectl -n kubernetes-dashboard wait --for=condition=Ready pod -l k8s-app=kubernetes-dashboard --timeout=10s >/dev/null 2>&1"; then
+    ok "Dashboard pod Ready"
+  else
+    err "Dashboard not Ready"; ((failures++))
+  fi
 
   # TLS secret
   if run "kubectl -n kubernetes-dashboard get secret dashboard-tls" >/dev/null 2>&1; then
@@ -132,9 +131,11 @@ check_longhorn() {
   run "kubectl -n longhorn-system get pods -o wide" || { err "Failed to list Longhorn pods"; ((failures++)); return; }
 
   # UI readiness
-  local uiready
-  uiready=$(run "kubectl -n longhorn-system get pods -l app=longhorn-ui -o jsonpath='{range .items[*]}{.status.containerStatuses[0].ready}{"\n"}{end}'" || true)
-  if grep -q '^true$' <<<"$uiready"; then ok "Longhorn UI Ready"; else warn "Longhorn UI not Ready"; fi
+  if run "kubectl -n longhorn-system wait --for=condition=Ready pod -l app=longhorn-ui --timeout=10s >/dev/null 2>&1"; then
+    ok "Longhorn UI Ready"
+  else
+    warn "Longhorn UI not Ready"
+  fi
 
   # Service NodePort
   local lsvc
