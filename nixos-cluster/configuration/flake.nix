@@ -58,6 +58,7 @@
             modules = [
               ./common/common.nix
               ./common/longhorn.nix
+              ./common/monitoring.nix
               ./common/users.nix
               ./common/k3s.nix
               (./hosts + "/${hostName}/configuration.nix")
