@@ -59,6 +59,7 @@
               ./common/common.nix
               ./common/users.nix
               ./common/k3s.nix
+              ./common/longhorn.nix
               (./hosts + "/${hostName}/configuration.nix")
             ];
           };
