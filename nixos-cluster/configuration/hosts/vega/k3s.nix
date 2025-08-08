@@ -4,6 +4,9 @@ let
   # Path to the dashboard manifest file
   dashboardManifestFile = ../../../kubernetes/dashboard.yaml;
 
+  # Path to the dashboard ingress manifest
+  dashboardIngressManifestFile = ../../../kubernetes/dashboard-ingress.yaml;
+
   # Path to Let's Encrypt issuer manifest file
   letsencryptIssuerManifestFile = ../../../kubernetes/letsencrypt-issuer.yaml;
 
@@ -15,6 +18,9 @@ let
 
   # Path to Longhorn NodePort service file
   longhornNodePortServiceFile = ../../../kubernetes/longhorn-nodeport-service.yaml;
+
+  # Path to Longhorn ingress
+  longhornIngressManifestFile = ../../../kubernetes/longhorn-ingress.yaml;
 
   # Path to the keys directory from the flake input
   keysDir = inputs.keys;
@@ -117,6 +123,20 @@ in {
     };
   };
 
+  # Deploy dashboard ingress after certificate/issuer and nginx-ingress
+  systemd.services.k3s-dashboard-ingress = {
+    description = "Deploy Kubernetes Dashboard Ingress";
+    wantedBy = [ "k3s-letsencrypt-issuer.service" ];
+    after = [ "k3s-letsencrypt-issuer.service" "k3s-dashboard.service" "k3s-nginx-ingress.service" ];
+    restartTriggers = [ dashboardIngressManifestFile ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
+      ExecStart = "${pkgs.kubectl}/bin/kubectl apply --server-side --force-conflicts -f ${dashboardIngressManifestFile}";
+    };
+  };
+
   # Deploy Longhorn distributed storage system
   systemd.services.k3s-longhorn = {
     description = "Deploy Longhorn Distributed Storage";
@@ -148,6 +168,20 @@ in {
         # Apply the NodePort service
         ${pkgs.kubectl}/bin/kubectl apply --server-side --force-conflicts -f ${longhornNodePortServiceFile}
       '';
+    };
+  };
+
+  # Longhorn UI Ingress (after nginx and cert-manager)
+  systemd.services.k3s-longhorn-ingress = {
+    description = "Deploy Longhorn UI Ingress";
+    wantedBy = [ "k3s-longhorn.service" ];
+    after = [ "k3s-longhorn.service" "k3s-nginx-ingress.service" "k3s-letsencrypt-issuer.service" ];
+    restartTriggers = [ longhornIngressManifestFile ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
+      ExecStart = "${pkgs.kubectl}/bin/kubectl apply --server-side --force-conflicts -f ${longhornIngressManifestFile}";
     };
   };
 } 
