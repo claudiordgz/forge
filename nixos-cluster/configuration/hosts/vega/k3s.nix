@@ -126,7 +126,7 @@ in {
   # Deploy dashboard ingress after certificate/issuer and nginx-ingress
   systemd.services.k3s-dashboard-ingress = {
     description = "Deploy Kubernetes Dashboard Ingress";
-    wantedBy = [ "k3s-letsencrypt-issuer.service" ];
+    wantedBy = [ "k3s.service" ];
     after = [ "k3s-letsencrypt-issuer.service" "k3s-dashboard.service" "k3s-nginx-ingress.service" ];
     restartTriggers = [ dashboardIngressManifestFile ];
     serviceConfig = {
@@ -174,7 +174,7 @@ in {
   # Longhorn UI Ingress (after nginx and cert-manager)
   systemd.services.k3s-longhorn-ingress = {
     description = "Deploy Longhorn UI Ingress";
-    wantedBy = [ "k3s-longhorn.service" ];
+    wantedBy = [ "k3s.service" ];
     after = [ "k3s-longhorn.service" "k3s-nginx-ingress.service" "k3s-letsencrypt-issuer.service" ];
     restartTriggers = [ longhornIngressManifestFile ];
     serviceConfig = {
