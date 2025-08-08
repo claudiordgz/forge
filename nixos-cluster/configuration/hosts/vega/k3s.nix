@@ -10,9 +10,6 @@ let
   # Path to dashboard certificate manifest file
   dashboardCertificateManifestFile = ../../../kubernetes/dashboard-certificate.yaml;
 
-  # Path to nginx-ingress manifest file
-  nginxIngressManifestFile = ../../../kubernetes/nginx-ingress.yaml;
-
   # Path to Longhorn manifest file
   longhornManifestFile = ../../../kubernetes/longhorn.yaml;
 

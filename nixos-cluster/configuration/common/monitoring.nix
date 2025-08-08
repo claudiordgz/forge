@@ -48,7 +48,7 @@ in {
     systemd.services.kube-prometheus-stack-install = {
       description = "Install/Upgrade kube-prometheus-stack via Helm";
       wantedBy = [ "multi-user.target" ];
-      after = [ "k3s.service" ];
+      after = [ "k3s.service" "k3s-nginx-ingress.service" ];
       requires = [ "k3s.service" ];
       serviceConfig = {
         Type = "oneshot";
@@ -74,6 +74,16 @@ in {
 
         # Create namespace if missing
         kubectl --kubeconfig="$KCONF" get ns ${cfg.namespace} >/dev/null 2>&1 || kubectl --kubeconfig="$KCONF" create ns ${cfg.namespace}
+
+        # If ingress is enabled in values, ensure the nginx admission service exists to avoid webhook errors
+        if grep -q "ingress:\s*\n\s*enabled:\s*true" /etc/monitoring/kps-values.yaml; then
+          for i in $(seq 1 120); do
+            if kubectl --kubeconfig="$KCONF" -n ingress-nginx get svc ingress-nginx-controller-admission >/dev/null 2>&1; then
+              break
+            fi
+            sleep 2
+          done
+        fi
 
         helm upgrade --install ${cfg.releaseName} prometheus-community/kube-prometheus-stack \
           --namespace ${cfg.namespace} \
