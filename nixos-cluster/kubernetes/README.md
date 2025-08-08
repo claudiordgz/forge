@@ -6,7 +6,7 @@ This directory contains Kubernetes manifests that are automatically deployed wit
 
 ### `dashboard.yaml`
 - **Purpose**: Kubernetes Dashboard for web-based cluster monitoring
-- **Access**: https://10.10.10.5:30443 or https://dashboard.locallier.com
+- **Access**: https://10.10.10.5:30443 or https://ui.locallier.com
 - **Features**: 
   - View nodes, pods, services, deployments
   - Monitor resource usage
@@ -30,7 +30,7 @@ This directory contains Kubernetes manifests that are automatically deployed wit
 
 ### `dashboard-certificate.yaml`
 - **Purpose**: SSL certificate for the Kubernetes Dashboard
-- **Domain**: dashboard.locallier.com, k8s.locallier.com
+- **Domain**: ui.locallier.com, k8s.locallier.com
 - **Automatic renewal**: Managed by cert-manager
 
 ### `longhorn.yaml`
@@ -62,7 +62,7 @@ The control plane services (dashboard, cert-manager, certificates, longhorn) are
 ### Domain Configuration
 1. **DNS Records**: Point these subdomains to your cluster IP:
    ```
-   dashboard.locallier.com  →  10.10.10.5
+   ui.locallier.com  →  10.10.10.5
    k8s.locallier.com        →  10.10.10.5
    ```
 
@@ -73,7 +73,7 @@ The control plane services (dashboard, cert-manager, certificates, longhorn) are
    - Stored in Kubernetes secrets
 
 ### Access URLs
-- **Dashboard**: https://dashboard.locallier.com
+- **Dashboard**: https://ui.locallier.com
 - **Alternative**: https://k8s.locallier.com
 
 ### Current Status

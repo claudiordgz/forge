@@ -103,7 +103,6 @@ in {
       RemainAfterExit = true;
       Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
       ExecStart = "${pkgs.kubectl}/bin/kubectl apply -f ${letsencryptIssuerManifestFile}";
-      ExecStop = "${pkgs.kubectl}/bin/kubectl delete -f ${letsencryptIssuerManifestFile} --ignore-not-found=true";
     };
   };
 
@@ -117,7 +116,6 @@ in {
       RemainAfterExit = true;
       Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
       ExecStart = "${pkgs.kubectl}/bin/kubectl apply -f ${dashboardCertificateManifestFile}";
-      ExecStop = "${pkgs.kubectl}/bin/kubectl delete -f ${dashboardCertificateManifestFile} --ignore-not-found=true";
     };
   };
 
