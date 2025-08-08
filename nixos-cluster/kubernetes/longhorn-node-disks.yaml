@@ -1,0 +1,57 @@
+# Longhorn Node disk configuration (apply-only)
+#
+# IMPORTANT:
+# - Ensure the paths below exist and point to mounted disks you want Longhorn to use.
+# - Recommended: mount extra drives at stable paths like /mnt/longhorn1 on each node.
+# - diskType: filesystem expects a directory path. If you intend to use raw block
+#   device mode, consult Longhorn docs for diskType: block.
+#
+# Apply with:
+#   kubectl apply -f nixos-cluster/kubernetes/longhorn-node-disks.yaml
+#
+apiVersion: longhorn.io/v1beta2
+kind: Node
+metadata:
+  name: vega
+  namespace: longhorn-system
+spec:
+  allowScheduling: true
+  disks:
+    extra-disk-1:
+      path: /mnt/longhorn1
+      allowScheduling: true
+      storageReserved: 10Gi
+      tags: [fast]
+      diskType: filesystem
+---
+apiVersion: longhorn.io/v1beta2
+kind: Node
+metadata:
+  name: rigel
+  namespace: longhorn-system
+spec:
+  allowScheduling: true
+  disks:
+    extra-disk-1:
+      path: /mnt/longhorn1
+      allowScheduling: true
+      storageReserved: 10Gi
+      tags: [fast]
+      diskType: filesystem
+---
+apiVersion: longhorn.io/v1beta2
+kind: Node
+metadata:
+  name: arcturus
+  namespace: longhorn-system
+spec:
+  allowScheduling: true
+  disks:
+    extra-disk-1:
+      path: /mnt/longhorn1
+      allowScheduling: true
+      storageReserved: 10Gi
+      tags: [fast]
+      diskType: filesystem
+
+

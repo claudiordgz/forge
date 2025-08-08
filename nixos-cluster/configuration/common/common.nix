@@ -62,9 +62,18 @@ in {
 
   # Make /usr/bin/iscsiadm available for Longhorn
   systemd.tmpfiles.rules = [
+    "d /mnt/longhorn1 0755 root root -"
     "L /usr/bin/iscsiadm - - - - /run/current-system/sw/bin/iscsiadm"
     "L /usr/sbin/iscsiadm - - - - /run/current-system/sw/bin/iscsiadm"
   ];
+
+  # Optional Longhorn data mount: if a disk/partition is labeled LONGHORN1, mount it at /mnt/longhorn1
+  # Nodes without this device will continue to boot (nofail). Automount avoids long boot delays.
+  fileSystems."/mnt/longhorn1" = {
+    device = "/dev/disk/by-label/LONGHORN1";
+    fsType = "ext4";
+    options = [ "nofail" "x-systemd.automount" "x-systemd.device-timeout=1s" ];
+  };
 
   hardware.nvidia = {
     package = config.boot.kernelPackages.nvidiaPackages.production;
