@@ -27,12 +27,12 @@ in {
     description = "Deploy Kubernetes Dashboard";
     wantedBy = [ "k3s.service" ];
     after = [ "k3s.service" ];
+    restartTriggers = [ dashboardManifestFile ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
       Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
-      ExecStart = "${pkgs.kubectl}/bin/kubectl apply -f ${dashboardManifestFile}";
-      ExecStop = "${pkgs.kubectl}/bin/kubectl delete -f ${dashboardManifestFile} --ignore-not-found=true";
+      ExecStart = "${pkgs.kubectl}/bin/kubectl apply --server-side --force-conflicts -f ${dashboardManifestFile}";
     };
   };
 
@@ -98,11 +98,13 @@ in {
     description = "Deploy Let's Encrypt ClusterIssuer";
     wantedBy = [ "k3s-nginx-ingress.service" ];
     after = [ "k3s-nginx-ingress.service" ];
+    restartTriggers = [ letsencryptIssuerManifestFile ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
       Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
-      ExecStart = "${pkgs.kubectl}/bin/kubectl apply -f ${letsencryptIssuerManifestFile}";
+      ExecStart = "${pkgs.kubectl}/bin/kubectl apply --server-side --force-conflicts -f ${letsencryptIssuerManifestFile}";
+      # ExecStop removed on purpose to avoid Let's Encrypt issuer being torn down
     };
   };
 
@@ -111,25 +113,27 @@ in {
     description = "Deploy Dashboard Certificate";
     wantedBy = [ "k3s-letsencrypt-issuer.service" ];
     after = [ "k3s-letsencrypt-issuer.service" "k3s-dashboard.service" ];
+    restartTriggers = [ dashboardCertificateManifestFile ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
       Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
-      ExecStart = "${pkgs.kubectl}/bin/kubectl apply -f ${dashboardCertificateManifestFile}";
+      ExecStart = "${pkgs.kubectl}/bin/kubectl apply --server-side --force-conflicts -f ${dashboardCertificateManifestFile}";
+      # ExecStop removed on purpose to avoid Let's Encrypt issuer being torn down
     };
   };
 
   # Deploy Longhorn distributed storage system
   systemd.services.k3s-longhorn = {
     description = "Deploy Longhorn Distributed Storage";
-    wantedBy = [ "k3s-cert-manager.service" ];
-    after = [ "k3s-cert-manager.service" ];
+    wantedBy = [ "k3s.service" ];
+    after = [ "k3s.service" ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
       Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
-      ExecStart = "${pkgs.kubectl}/bin/kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml";
-      ExecStop = "${pkgs.kubectl}/bin/kubectl delete -f https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml --ignore-not-found=true";
+      ExecStart = "${pkgs.kubectl}/bin/kubectl apply --server-side --force-conflicts -f https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml";
+      # ExecStop removed on purpose to avoid tearing down CRDs/webhooks
     };
   };
 
@@ -138,6 +142,7 @@ in {
     description = "Configure Longhorn UI NodePort";
     wantedBy = [ "k3s-longhorn.service" ];
     after = [ "k3s-longhorn.service" ];
+    restartTriggers = [ longhornNodePortServiceFile ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
@@ -147,7 +152,7 @@ in {
         ${pkgs.kubectl}/bin/kubectl wait --for=condition=ready pod -l app=longhorn-ui -n longhorn-system --timeout=300s
         
         # Apply the NodePort service
-        ${pkgs.kubectl}/bin/kubectl apply -f ${longhornNodePortServiceFile}
+        ${pkgs.kubectl}/bin/kubectl apply --server-side --force-conflicts -f ${longhornNodePortServiceFile}
       '';
     };
   };
