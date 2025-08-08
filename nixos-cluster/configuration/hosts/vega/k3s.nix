@@ -22,6 +22,11 @@ let
   # Path to Longhorn ingress
   longhornIngressManifestFile = ../../../kubernetes/longhorn-ingress.yaml;
 
+  # MetalLB manifests
+  metallbManifestUrl = "https://raw.githubusercontent.com/metallb/metallb/v0.14.5/config/manifests/metallb-native.yaml";
+  metallbIPAddressPoolFile = ../../../kubernetes/metallb-ipaddresspool.yaml;
+  metallbL2AdvertisementFile = ../../../kubernetes/metallb-l2advertisement.yaml;
+
   # Path to the keys directory from the flake input
   keysDir = inputs.keys;
 in {
@@ -90,6 +95,51 @@ in {
       RemainAfterExit = true;
       Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
       ExecStart = "${pkgs.kubectl}/bin/kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.1/deploy/static/provider/baremetal/deploy.yaml --validate=false";
+    };
+  };
+
+  # Install MetalLB (CRDs + controllers)
+  systemd.services.k3s-metallb = {
+    description = "Deploy MetalLB (native manifests)";
+    wantedBy = [ "k3s.service" ];
+    after = [ "k3s.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
+      ExecStart = "${pkgs.kubectl}/bin/kubectl apply -f ${metallbManifestUrl} --validate=false";
+    };
+  };
+
+  # Configure MetalLB address pool + L2 advertisement after CRDs are ready
+  systemd.services.k3s-metallb-config = {
+    description = "Configure MetalLB IPAddressPool and L2Advertisement";
+    wantedBy = [ "k3s-metallb.service" ];
+    after = [ "k3s-metallb.service" ];
+    restartTriggers = [ metallbIPAddressPoolFile metallbL2AdvertisementFile ];
+    path = [ pkgs.kubectl pkgs.coreutils pkgs.gnugrep pkgs.bash ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
+      ExecStart = pkgs.writeShellScript "configure-metallb" ''
+        set -euo pipefail
+        # Wait for CRDs to be established
+        for i in $(seq 1 120); do
+          if kubectl get crd ipaddresspools.metallb.io >/dev/null 2>&1 && \
+             kubectl get crd l2advertisements.metallb.io >/dev/null 2>&1; then
+            break
+          fi
+          sleep 2
+        done
+
+        # Create namespace just in case (apply is idempotent)
+        kubectl create ns metallb-system >/dev/null 2>&1 || true
+
+        # Apply pool and L2Advertisement
+        kubectl apply -f ${metallbIPAddressPoolFile}
+        kubectl apply -f ${metallbL2AdvertisementFile}
+      '';
     };
   };
 
@@ -182,6 +232,39 @@ in {
       RemainAfterExit = true;
       Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
       ExecStart = "${pkgs.kubectl}/bin/kubectl apply --server-side --force-conflicts -f ${longhornIngressManifestFile}";
+    };
+  };
+
+  # Patch nginx-ingress Service to LoadBalancer using MetalLB
+  systemd.services.k3s-nginx-ingress-lb = {
+    description = "Switch ingress-nginx controller Service to LoadBalancer (MetalLB)";
+    wantedBy = [ "k3s-metallb-config.service" "k3s-nginx-ingress.service" ];
+    after = [ "k3s-metallb-config.service" "k3s-nginx-ingress.service" ];
+    path = [ pkgs.kubectl pkgs.jq pkgs.bash pkgs.coreutils ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
+      ExecStart = pkgs.writeShellScript "patch-ingress-to-lb" ''
+        set -euo pipefail
+        # Wait for the Service to exist
+        for i in $(seq 1 120); do
+          if kubectl -n ingress-nginx get svc ingress-nginx-controller >/dev/null 2>&1; then
+            break
+          fi
+          sleep 2
+        done
+
+        # Patch to LoadBalancer with a fixed IP from MetalLB pool
+        kubectl -n ingress-nginx patch svc ingress-nginx-controller \
+          --type=merge -p '{
+            "spec": {
+              "type": "LoadBalancer",
+              "externalTrafficPolicy": "Local",
+              "loadBalancerIP": "10.10.10.80"
+            }
+          }'
+      '';
     };
   };
 } 
