@@ -57,9 +57,9 @@
 
             modules = [
               ./common/common.nix
+              ./common/longhorn.nix
               ./common/users.nix
               ./common/k3s.nix
-              ./common/longhorn.nix
               (./hosts + "/${hostName}/configuration.nix")
             ];
           };
