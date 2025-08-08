@@ -51,7 +51,7 @@ in {
 
   # Configure containerd for k3s (k3s needs containerd, not podman)
   virtualisation.containerd.enable = true;
-
+  boot.kernelModules = [ "br_netfilter" ];
   boot.kernel.sysctl = {
     "net.ipv4.ip_forward" = 1;
     "net.bridge.bridge-nf-call-iptables" = 1;

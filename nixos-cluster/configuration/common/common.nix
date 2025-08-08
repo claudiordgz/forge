@@ -53,7 +53,18 @@ in {
 
   # Load NVIDIA kernel module even on headless nodes
   services.xserver.videoDrivers = [ "nvidia" ];
-  services.openiscsi.enable = true;
+  services.openiscsi = {
+    enable = true;
+    # Use a stable IQN; you can change the prefix to your org/domain.
+    # This interpolates each host’s name automatically.
+    name = "iqn.2025-08.locallier:${config.networking.hostName}";
+  };
+
+  # Make /usr/bin/iscsiadm available for Longhorn
+  systemd.tmpfiles.rules = [
+    "L /usr/bin/iscsiadm - - - - /run/current-system/sw/bin/iscsiadm"
+    "L /usr/sbin/iscsiadm - - - - /run/current-system/sw/bin/iscsiadm"
+  ];
 
   hardware.nvidia = {
     package = config.boot.kernelPackages.nvidiaPackages.production;
