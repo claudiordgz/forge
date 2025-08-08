@@ -127,6 +127,14 @@ save_cloudflare_api_token() {
     echo "✅ Saved Cloudflare API token to $node"
 }
 
+save_cloudflare_tunnel_token() {
+    local node=$1
+    local token=$2
+    echo "📁 Saving Cloudflare Tunnel token to $node..."
+    ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$SSH_USER@$node" "mkdir -p /var/lib/nixos-cluster/keys/cloudflared && echo '$token' > /var/lib/nixos-cluster/keys/cloudflared/tunnel-token && chmod 600 /var/lib/nixos-cluster/keys/cloudflared/tunnel-token"
+    echo "✅ Saved Cloudflare Tunnel token to $node"
+}
+
 sign_in_to_1password() {
     echo "🔐 Not signed in to 1Password CLI"
     echo "Please run: eval \"\$(op signin --account https://my.1password.com)\""
@@ -145,8 +153,8 @@ main() {
     echo "Checking if already signed in..."
     if op whoami &>/dev/null; then
         echo "✅ Already signed in to 1Password CLI"
-        # Try to fetch the token
-        echo "Fetching token..."
+        # Try to fetch the tokens
+        echo "Fetching tokens..."
         if CLOUDFLARE_API_TOKEN=$(op item get "cloudflare-locallier.com-token" --format json --reveal | jq -r '.fields[] | select(.id == "password") | .value' 2>/dev/null); then
             echo "✅ Got Cloudflare API token from 1Password"
         else
@@ -158,11 +166,24 @@ main() {
             sign_in_to_1password
             exit 1
         fi
+
+        if CLOUDFLARE_TUNNEL_TOKEN=$(op item get "cloudflare-tunnel-token" --format json --reveal | jq -r '.fields[] | select(.id == "password") | .value' 2>/dev/null); then
+            echo "✅ Got Cloudflare Tunnel token from 1Password"
+        else
+            echo "❌ Failed to get Cloudflare Tunnel token"
+            exit 1
+        fi
+        if [ -z "$CLOUDFLARE_TUNNEL_TOKEN" ]; then
+            echo "❌ Cloudflare Tunnel token is empty"
+            sign_in_to_1password
+            exit 1
+        fi
     else
         sign_in_to_1password
     fi
     
     save_cloudflare_api_token "vega" "$CLOUDFLARE_API_TOKEN"
+    save_cloudflare_tunnel_token "vega" "$CLOUDFLARE_TUNNEL_TOKEN"
 
     echo "🔍 Checking node connectivity..."
     local reachable_nodes=()

@@ -26,6 +26,9 @@ let
   metallbIPAddressPoolFile = ../../../kubernetes/metallb-ipaddresspool.yaml;
   metallbL2AdvertisementFile = ../../../kubernetes/metallb-l2advertisement.yaml;
 
+  # Cloudflared (Cloudflare Tunnel) manifests
+  cloudflaredDeploymentFile = ../../../kubernetes/cloudflared/deployment.yaml;
+
   # Path to the keys directory from the flake input
   keysDir = inputs.keys;
 in {
@@ -53,6 +56,44 @@ in {
       RemainAfterExit = true;
       Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
       ExecStart = "${pkgs.kubectl}/bin/kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml";
+    };
+  };
+
+  # Deploy Cloudflare Tunnel (cloudflared) to publish selected services via Zero Trust
+  systemd.services.k3s-cloudflared = {
+    description = "Deploy Cloudflare Tunnel (cloudflared)";
+    wantedBy = [ "k3s.service" ];
+    after = [ "k3s.service" ];
+    restartTriggers = [ cloudflaredDeploymentFile ];
+    path = [ pkgs.kubectl pkgs.jq pkgs.coreutils pkgs.bash ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
+      ExecStart = pkgs.writeShellScript "deploy-cloudflared" ''
+        set -euo pipefail
+        KCONF=/etc/rancher/k3s/k3s.yaml
+        export KUBECONFIG="$KCONF"
+
+        # Ensure namespace exists
+        kubectl get ns cloudflared >/dev/null 2>&1 || kubectl create ns cloudflared
+
+        # Expect a token file at ${keysDir}/cloudflared/tunnel-token
+        TOKEN_FILE="${keysDir}/cloudflared/tunnel-token"
+        if [ ! -f "$TOKEN_FILE" ]; then
+          echo "Missing Cloudflare tunnel token at $TOKEN_FILE" >&2
+          echo "Place the token (single line) there and rebuild" >&2
+          exit 1
+        fi
+
+        # Create/Update secret with token
+        kubectl -n cloudflared create secret generic cloudflared-token \
+          --from-file=TUNNEL_TOKEN="$TOKEN_FILE" \
+          --dry-run=client -o yaml | kubectl apply -f -
+
+        # Apply Deployment (token-based)
+        kubectl apply -f ${cloudflaredDeploymentFile}
+      '';
     };
   };
 
