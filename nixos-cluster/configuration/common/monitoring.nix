@@ -52,13 +52,17 @@ in {
       requires = [ "k3s.service" ];
       serviceConfig = {
         Type = "oneshot";
+        Restart = "on-failure";
+        RestartSec = 10;
       };
       path = [ pkgs.kubectl pkgs.helm pkgs.coreutils pkgs.gnugrep pkgs.bash ];
       script = ''
         set -euo pipefail
-        # Wait for API to be reachable
-        for i in $(seq 1 60); do
-          if kubectl get --raw=/readyz >/dev/null 2>&1; then
+        KCONF=/etc/rancher/k3s/k3s.yaml
+        export KUBECONFIG="$KCONF"
+        # Wait for kubeconfig file and API readiness
+        for i in $(seq 1 120); do
+          if [ -f "$KCONF" ] && kubectl --kubeconfig="$KCONF" get --raw=/readyz >/dev/null 2>&1; then
             break
           fi
           sleep 2
@@ -69,7 +73,7 @@ in {
         helm repo update >/dev/null 2>&1 || true
 
         # Create namespace if missing
-        kubectl get ns ${cfg.namespace} >/dev/null 2>&1 || kubectl create ns ${cfg.namespace}
+        kubectl --kubeconfig="$KCONF" get ns ${cfg.namespace} >/dev/null 2>&1 || kubectl --kubeconfig="$KCONF" create ns ${cfg.namespace}
 
         helm upgrade --install ${cfg.releaseName} prometheus-community/kube-prometheus-stack \
           --namespace ${cfg.namespace} \
