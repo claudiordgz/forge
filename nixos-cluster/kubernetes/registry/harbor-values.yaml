@@ -31,6 +31,20 @@ notary:
 trivy:
   enabled: true
 
+# Ensure one pod per component by default (you can scale later if needed)
+core:
+  replicas: 1
+registry:
+  replicas: 1
+portal:
+  replicas: 1
+jobservice:
+  replicas: 1
+database:
+  replicas: 1
+redis:
+  replicas: 1
+
 # Longhorn-backed persistence for all components
 persistence:
   enabled: true
