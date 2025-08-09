@@ -22,11 +22,13 @@ MODELS=("gpt-oss" "gemma3" "qwen3")
 
 for MODEL in "${MODELS[@]}"; do
   echo "==> Building model=$MODEL for GPU=$GPU"
-  docker build \
+  docker buildx build \
+    --platform linux/amd64,linux/arm64 \
     -f "$ROOT_DIR/kubernetes/docker/Dockerfile.model" \
     --build-arg MODEL="$MODEL" \
     --build-arg GPU_ARCH="$GPU" \
     -t "$REG_PREFIX/ollama-$MODEL-$GPU:$IMAGE_TAG" \
+    --load \
     "$ROOT_DIR"
 
   docker push "$REG_PREFIX/ollama-$MODEL-$GPU:$IMAGE_TAG"
