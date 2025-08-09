@@ -28,6 +28,7 @@ let
 
   # Cloudflared (Cloudflare Tunnel) manifests
   cloudflaredDeploymentFile = ../../../kubernetes/cloudflared/deployment.yaml;
+  harborValuesFile = ../../../kubernetes/registry/harbor-values.yaml;
 
   # Path to the keys directory from the flake input
   keysDir = inputs.keys;
@@ -59,6 +60,52 @@ in {
     };
   };
 
+  # Install/Upgrade Harbor via Helm (namespace ai)
+  systemd.services.k3s-harbor = {
+    description = "Install/Upgrade Harbor (ai namespace)";
+    wantedBy = [ "k3s.service" ];
+    after = [ "k3s.service" "k3s-longhorn.service" ];
+    restartTriggers = [ harborValuesFile ];
+    path = [ pkgs.kubectl pkgs.kubernetes-helm pkgs.coreutils pkgs.gnugrep pkgs.bash ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
+      ExecStart = pkgs.writeShellScript "install-harbor" ''
+        set -euo pipefail
+        KCONF=/etc/rancher/k3s/k3s.yaml
+        export KUBECONFIG="$KCONF"
+
+        # Wait for API
+        for i in $(seq 1 120); do
+          if [ -f "$KCONF" ] && kubectl get --raw=/readyz >/dev/null 2>&1; then
+            break
+          fi
+          sleep 2
+        done
+
+        # Create namespace if missing
+        kubectl get ns ai >/dev/null 2>&1 || kubectl create ns ai
+
+        # Ensure Helm repo
+        helm repo add harbor https://helm.goharbor.io >/dev/null 2>&1 || true
+        helm repo update >/dev/null 2>&1 || true
+
+        # Require admin secret to exist (created out of band via file)
+        if ! kubectl -n ai get secret harbor-admin >/dev/null 2>&1; then
+          echo "harbor-admin Secret missing in ns ai (key HARBOR_ADMIN_PASSWORD). Skipping Harbor install." >&2
+          exit 0
+        fi
+
+        # Install/upgrade Harbor
+        helm upgrade --install harbor harbor/harbor \
+          -n ai \
+          -f ${harborValuesFile} \
+          --wait
+      '';
+    };
+  };
+
   # Deploy Cloudflare Tunnel (cloudflared) to publish selected services via Zero Trust
   systemd.services.k3s-cloudflared = {
     description = "Deploy Cloudflare Tunnel (cloudflared)";
@@ -78,18 +125,11 @@ in {
         # Ensure namespace exists
         kubectl get ns cloudflared >/dev/null 2>&1 || kubectl create ns cloudflared
 
-        # Expect a token file at ${keysDir}/cloudflared/tunnel-token
-        TOKEN_FILE="${keysDir}/cloudflared/tunnel-token"
-        if [ ! -f "$TOKEN_FILE" ]; then
-          echo "Missing Cloudflare tunnel token at $TOKEN_FILE" >&2
-          echo "Place the token (single line) there and rebuild" >&2
-          exit 1
+        # Only proceed if the secret already exists (managed by deploy script)
+        if ! kubectl -n cloudflared get secret cloudflared-token >/dev/null 2>&1; then
+          echo "cloudflared-token Secret missing in ns cloudflared. Skipping cloudflared deploy." >&2
+          exit 0
         fi
-
-        # Create/Update secret with token
-        kubectl -n cloudflared create secret generic cloudflared-token \
-          --from-file=TUNNEL_TOKEN="$TOKEN_FILE" \
-          --dry-run=client -o yaml | kubectl apply -f -
 
         # Apply Deployment (token-based)
         kubectl apply -f ${cloudflaredDeploymentFile}
@@ -97,39 +137,13 @@ in {
     };
   };
 
-  # Create Cloudflare API token secret from file
-  systemd.services.k3s-cloudflare-secret = {
-    description = "Deploy Cloudflare API Token Secret from File";
-    wantedBy = [ "k3s-cert-manager.service" ];
-    after = [ "k3s-cert-manager.service" ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
-      ExecStart = pkgs.writeShellScript "create-cloudflare-secret" ''
-        # Check if the token file exists
-        if [ ! -f ${keysDir}/cloudflare-api-token ]; then
-          echo "Error: Cloudflare API token file not found at ${keysDir}/cloudflare-api-token"
-          exit 1
-        fi
-        
-        # Read the token from the file
-        API_TOKEN=$(cat ${keysDir}/cloudflare-api-token)
-        
-        # Create the secret directly with kubectl
-        ${pkgs.kubectl}/bin/kubectl create secret generic cloudflare-api-token-secret \
-          --namespace=cert-manager \
-          --from-literal=api-token="$API_TOKEN" \
-          --dry-run=client -o yaml | ${pkgs.kubectl}/bin/kubectl apply -f -
-      '';
-    };
-  };
+  # Removed: Cloudflare API token secret creation (handled by deploy script)
 
-  # Deploy nginx-ingress after cloudflare secret
+  # Deploy nginx-ingress
   systemd.services.k3s-nginx-ingress = {
     description = "Deploy nginx-ingress controller";
-    wantedBy = [ "k3s-cloudflare-secret.service" ];
-    after = [ "k3s-cloudflare-secret.service" ];
+    wantedBy = [ "k3s.service" ];
+    after = [ "k3s.service" ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;

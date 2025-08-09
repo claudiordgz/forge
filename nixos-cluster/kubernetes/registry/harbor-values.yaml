@@ -1,0 +1,66 @@
+# Harbor on Longhorn in namespace `ai`
+ # Domain and storage class are set for your cluster:
+ # - Domain: ai.locallier.com
+ # - StorageClass: longhorn
+
+expose:
+  # Default to cluster-internal only
+  type: clusterIP
+  tls:
+    enabled: false
+
+  # Optional external exposure via ingress; requires existing TLS secret
+  ingress:
+    className: nginx
+    hosts:
+      core: ai.locallier.com
+      notary: notary.ai.locallier.com
+    tls:
+      enabled: true
+      secretName: harbor-ai-tls
+
+# Use in-cluster core service URL by default (internal-only)
+externalURL: http://harbor-harbor-core.ai.svc.cluster.local
+
+# Admin password comes from an existing Secret created out of band
+existingSecret: harbor-admin
+existingSecretKey: HARBOR_ADMIN_PASSWORD
+
+# Disable Notary; enable Trivy scanner
+notary:
+  enabled: false
+
+trivy:
+  enabled: true
+
+# Longhorn-backed persistence for all components
+persistence:
+  enabled: true
+  resourcePolicy: "keep"
+  persistentVolumeClaim:
+    registry:
+      accessMode: ReadWriteOnce
+      size: 20Gi
+      storageClass: longhorn
+    chartmuseum:
+      accessMode: ReadWriteOnce
+      size: 10Gi
+      storageClass: longhorn
+    jobservice:
+      jobLog:
+        accessMode: ReadWriteOnce
+        size: 10Gi
+        storageClass: longhorn
+    database:
+      accessMode: ReadWriteOnce
+      size: 10Gi
+      storageClass: longhorn
+    redis:
+      accessMode: ReadWriteOnce
+      size: 5Gi
+      storageClass: longhorn
+    trivy:
+      accessMode: ReadWriteOnce
+      size: 10Gi
+      storageClass: longhorn
+

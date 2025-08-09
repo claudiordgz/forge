@@ -135,6 +135,51 @@ save_cloudflare_tunnel_token() {
     echo "✅ Saved Cloudflare Tunnel token to $node"
 }
 
+create_or_update_cloudflare_api_secret_from_node_file() {
+    local node=$1
+    local remote_file=$2
+    echo "🔐 Creating/Updating Cloudflare API token Secret on $node..."
+    ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$SSH_USER@$node" "\
+      set -e; \
+      if [ ! -f '$remote_file' ]; then echo 'Missing file: $remote_file' >&2; exit 1; fi; \
+      kubectl create ns cert-manager >/dev/null 2>&1 || true; \
+      kubectl -n cert-manager create secret generic cloudflare-api-token-secret \
+        --from-file=api-token=$remote_file \
+        --dry-run=client -o yaml | kubectl apply -f -"
+    echo "✅ Cloudflare API token Secret applied on $node"
+}
+
+create_or_update_cloudflared_token_secret_from_node_file() {
+    local node=$1
+    local remote_file=$2
+    echo "🔐 Creating/Updating cloudflared Tunnel token Secret on $node..."
+    ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$SSH_USER@$node" "\
+      set -e; \
+      if [ ! -f '$remote_file' ]; then echo 'Missing file: $remote_file' >&2; exit 1; fi; \
+      kubectl create ns cloudflared >/dev/null 2>&1 || true; \
+      kubectl -n cloudflared create secret generic cloudflared-token \
+        --from-file=TUNNEL_TOKEN=$remote_file \
+        --dry-run=client -o yaml | kubectl apply -f -"
+    echo "✅ cloudflared Tunnel token Secret applied on $node"
+}
+
+create_or_update_harbor_admin_secret() {
+    local node=$1
+    local local_file=$2
+    echo "🔐 Creating/Updating Harbor admin Secret on $node..."
+    # Copy password file to remote tmp
+    scp -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$local_file" "$SSH_USER@$node:/tmp/harbor-admin-password" >/dev/null
+    # Create ns and upsert secret from file
+    ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$SSH_USER@$node" "\
+      set -e; \
+      kubectl create ns ai >/dev/null 2>&1 || true; \
+      kubectl -n ai create secret generic harbor-admin \
+        --from-file=HARBOR_ADMIN_PASSWORD=/tmp/harbor-admin-password \
+        --dry-run=client -o yaml | kubectl apply -f -; \
+      rm -f /tmp/harbor-admin-password"
+    echo "✅ Harbor admin Secret applied on $node"
+}
+
 sign_in_to_1password() {
     echo "🔐 Not signed in to 1Password CLI"
     echo "Please run: eval \"\$(op signin --account https://my.1password.com)\""
@@ -142,6 +187,31 @@ sign_in_to_1password() {
     echo "eval \"\$(op signin --account https://my.1password.com)\"" | pbcopy
     echo "Command copied to clipboard, paste it into your terminal and login to 1Password"
     exit 1
+}
+
+# Fetch a secret from 1Password and assign to a variable by name
+# Usage: fetch_1p_secret "<item-name>" VAR_NAME "Human label"
+fetch_1p_secret() {
+    local item_name="$1"
+    local var_name="$2"
+    local label="$3"
+
+    local value
+    if value=$(op item get "$item_name" --format json --reveal | jq -r '.fields[] | select(.id == "password") | .value' 2>/dev/null); then
+        echo "✅ Got $label from 1Password"
+    else
+        echo "❌ Failed to get $label"
+        exit 1
+    fi
+
+    if [ -z "$value" ] || [ "$value" = "null" ]; then
+        echo "❌ $label is empty"
+        sign_in_to_1password
+        exit 1
+    fi
+
+    # Assign to caller's variable name
+    eval "$var_name=\"$value\""
 }
 
 # Main deployment logic
@@ -153,37 +223,31 @@ main() {
     echo "Checking if already signed in..."
     if op whoami &>/dev/null; then
         echo "✅ Already signed in to 1Password CLI"
-        # Try to fetch the tokens
+        # Fetch required secrets via a compact loop
         echo "Fetching tokens..."
-        if CLOUDFLARE_API_TOKEN=$(op item get "cloudflare-locallier.com-token" --format json --reveal | jq -r '.fields[] | select(.id == "password") | .value' 2>/dev/null); then
-            echo "✅ Got Cloudflare API token from 1Password"
-        else
-            echo "❌ Failed to get Cloudflare API token"
-            exit 1
-        fi
-        if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
-            echo "❌ Cloudflare API token is empty"
-            sign_in_to_1password
-            exit 1
-        fi
-
-        if CLOUDFLARE_TUNNEL_TOKEN=$(op item get "cloudflare-tunnel-token" --format json --reveal | jq -r '.fields[] | select(.id == "password") | .value' 2>/dev/null); then
-            echo "✅ Got Cloudflare Tunnel token from 1Password"
-        else
-            echo "❌ Failed to get Cloudflare Tunnel token"
-            exit 1
-        fi
-        if [ -z "$CLOUDFLARE_TUNNEL_TOKEN" ]; then
-            echo "❌ Cloudflare Tunnel token is empty"
-            sign_in_to_1password
-            exit 1
-        fi
+        SECRETS=(
+          "cloudflare-locallier.com-token:CLOUDFLARE_API_TOKEN:Cloudflare API token"
+          "cloudflare-tunnel-token:CLOUDFLARE_TUNNEL_TOKEN:Cloudflare Tunnel token"
+          "harbor-admin-password:HARBOR_ADMIN_PASSWORD:Harbor admin password"
+        )
+        for spec in "${SECRETS[@]}"; do
+          IFS=: read -r ITEM VAR LABEL <<< "$spec"
+          fetch_1p_secret "$ITEM" "$VAR" "$LABEL"
+        done
     else
         sign_in_to_1password
     fi
     
     save_cloudflare_api_token "vega" "$CLOUDFLARE_API_TOKEN"
     save_cloudflare_tunnel_token "vega" "$CLOUDFLARE_TUNNEL_TOKEN"
+    create_or_update_cloudflare_api_secret_from_node_file "vega" "/var/lib/nixos-cluster/keys/cloudflare-api-token"
+    create_or_update_cloudflared_token_secret_from_node_file "vega" "/var/lib/nixos-cluster/keys/cloudflared/tunnel-token"
+
+    # Write Harbor admin password to a local temp file and apply secret on vega
+    HARBOR_PW_FILE=$(create_temp_file)
+    chmod 600 "$HARBOR_PW_FILE"
+    printf "%s" "$HARBOR_ADMIN_PASSWORD" > "$HARBOR_PW_FILE"
+    create_or_update_harbor_admin_secret "vega" "$HARBOR_PW_FILE"
 
     echo "🔍 Checking node connectivity..."
     local reachable_nodes=()
