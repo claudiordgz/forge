@@ -23,6 +23,12 @@ spec:
       storageReserved: 10Gi
       tags: [fast]
       diskType: filesystem
+    os-share-1:
+      path: /var/lib/longhorn-os1
+      allowScheduling: true
+      storageReserved: 250Gi
+      tags: [os]
+      diskType: filesystem
 ---
 apiVersion: longhorn.io/v1beta2
 kind: Node
@@ -38,6 +44,12 @@ spec:
       storageReserved: 10Gi
       tags: [fast]
       diskType: filesystem
+    os-share-1:
+      path: /var/lib/longhorn-os1
+      allowScheduling: true
+      storageReserved: 250Gi
+      tags: [os]
+      diskType: filesystem
 ---
 apiVersion: longhorn.io/v1beta2
 kind: Node
@@ -52,6 +64,12 @@ spec:
       allowScheduling: true
       storageReserved: 10Gi
       tags: [fast]
+      diskType: filesystem
+    os-share-1:
+      path: /var/lib/longhorn-os1
+      allowScheduling: true
+      storageReserved: 250Gi
+      tags: [os]
       diskType: filesystem
 
 
