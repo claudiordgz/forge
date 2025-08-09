@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Build and push per-model, per-GPU images to Harbor
-
-HARBOR_ENDPOINT=harbor-core.ai.svc.cluster.local
+# Build and push per-model, per-GPU images to Harbor (HTTP via MetalLB)
+# Note: ensure Docker marks this as an insecure registry or uses a trusted cert
+HARBOR_ENDPOINT=harbor.lan.locallier.com:80
 IMAGE_TAG=${IMAGE_TAG:-v1}
 GPU=${GPU:-3090}
 
 REG_PREFIX="$HARBOR_ENDPOINT/ai"
-ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 
 echo "==> Building baseline image for GPU=$GPU, tag=$IMAGE_TAG"
 docker build \

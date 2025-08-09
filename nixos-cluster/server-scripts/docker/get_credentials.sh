@@ -10,7 +10,7 @@ set -euo pipefail
 # - Prints JSON: {"user":"...","token":"..."}
 
 ITEM_NAME="harbor-admin-password"
-HARBOR_ENDPOINT=${HARBOR_ENDPOINT:-harbor.ai.svc.cluster.local}
+HARBOR_ENDPOINT="http://harbor.lan.locallier.com:80"
 
 sign_in_to_1password() {
   echo "🔐 Not signed in to 1Password CLI"
@@ -47,14 +47,16 @@ if [[ -n "${ROBOT_USER:-}" && -n "${ROBOT_TOKEN:-}" ]]; then
   jq -n --arg user "$ROBOT_USER" --arg token "$ROBOT_TOKEN" '{user:$user, token:$token}'
   exit 0
 fi
+echo "No robot credentials found"
 
 ADMIN_PW="${ADMIN_PW:-$(fetch_field password || true)}"
 if [[ -z "${ADMIN_PW:-}" ]]; then
   # If robot fields were empty and we also can't read admin password, prompt login flow
   sign_in_to_1password
 fi
+echo "Admin password retrieved"
 
-HARBOR_BASE="http://${HARBOR_ENDPOINT}"
+HARBOR_BASE="${HARBOR_ENDPOINT}"
 
 # Create project ai (idempotent)
 http_code=$(curl -sS -o /dev/null -w '%{http_code}' \
@@ -66,15 +68,32 @@ case "$http_code" in
   *) echo "ERROR: creating project ai failed (HTTP $http_code)" >&2; exit 1;;
 esac
 
-# Create robot with unique name to always receive a token
-ROBOT_BASENAME="builder"
-ROBOT_NAME="${ROBOT_BASENAME}-$(date +%s)"
+# Create a project-scoped robot via system robots API (Harbor v2)
+ROBOT_NAME="builder-$(date +%s)"
+payload=$(jq -n --arg name "$ROBOT_NAME" --arg ns "ai" '
+  {
+    name: $name,
+    level: "project",
+    duration: -1,
+    permissions: [
+      {
+        kind: "project",
+        namespace: $ns,
+        access: [
+          { resource: "repository", action: "push" },
+          { resource: "repository", action: "pull" }
+        ]
+      }
+    ]
+  }
+')
+
 resp=$(curl -sS -u "admin:${ADMIN_PW}" -H 'Content-Type: application/json' \
-  -X POST "${HARBOR_BASE}/api/v2.0/projects/ai/robots" \
-  -d "{\"name\":\"${ROBOT_NAME}\",\"duration\":-1,\"access\":[{\"resource\":\"/project/ai/repository\",\"action\":\"push\"},{\"resource\":\"/project/ai/repository\",\"action\":\"pull\"}]}" )
+  -X POST "${HARBOR_BASE}/api/v2.0/robots" \
+  -d "$payload")
 
 ROBOT_USER=$(jq -r '.name // empty' <<<"$resp")
-ROBOT_TOKEN=$(jq -r '.token // empty' <<<"$resp")
+ROBOT_TOKEN=$(jq -r '.secret // empty' <<<"$resp")
 if [[ -z "$ROBOT_USER" || -z "$ROBOT_TOKEN" ]]; then
   echo "ERROR: failed to create robot or parse credentials" >&2
   echo "$resp" >&2

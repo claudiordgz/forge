@@ -20,15 +20,11 @@ RUN mkdir -p /models
 # ENV NVIDIA_VISIBLE_DEVICES=all
 # ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
 
-# Pre-warm the image with the requested model
-# Start a background server, pull the model, then stop it
-RUN set -euo pipefail; \
-    (ollama serve & echo $! > /tmp/ollama.pid); \
-    for i in $(seq 1 60); do \
-      if nc -z localhost 11434 2>/dev/null; then break; fi; \
-      sleep 1; \
-    done; \
-    ollama pull ${MODEL}; \
+# Pre-warm the image with the requested model (POSIX sh)
+# Start a background server, give it a moment, pull the model, then stop it
+RUN (ollama serve & echo $! > /tmp/ollama.pid); \
+    sleep 120; \
+    ollama pull ${MODEL} || (sleep 10; ollama pull ${MODEL}); \
     kill $(cat /tmp/ollama.pid) || true; \
     rm -f /tmp/ollama.pid
 

@@ -38,7 +38,7 @@ persistence:
   persistentVolumeClaim:
     registry:
       accessMode: ReadWriteOnce
-      size: 20Gi
+      size: 400Gi
       storageClass: longhorn
     chartmuseum:
       accessMode: ReadWriteOnce
@@ -51,7 +51,7 @@ persistence:
         storageClass: longhorn
     database:
       accessMode: ReadWriteOnce
-      size: 10Gi
+      size: 20Gi
       storageClass: longhorn
     redis:
       accessMode: ReadWriteOnce
@@ -59,6 +59,6 @@ persistence:
       storageClass: longhorn
     trivy:
       accessMode: ReadWriteOnce
-      size: 10Gi
+      size: 20Gi
       storageClass: longhorn
 
