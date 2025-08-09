@@ -1,0 +1,38 @@
+# Build a per-model, per-GPU image on top of the Ollama base
+# The build pre-pulls the model to avoid cold-starts
+
+ARG BASE_IMAGE=ollama/ollama:latest
+FROM ${BASE_IMAGE}
+
+ARG MODEL
+ARG GPU_ARCH
+
+LABEL org.opencontainers.image.title="ollama-${MODEL}-${GPU_ARCH}" \
+      model="${MODEL}" \
+      gpu="${GPU_ARCH}"
+
+ENV OLLAMA_MODELS=/models \
+    OLLAMA_HOST=0.0.0.0
+
+RUN mkdir -p /models
+
+# Optionally, set CUDA/BLAS toggles here if needed for specific GPUs
+# ENV NVIDIA_VISIBLE_DEVICES=all
+# ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+# Pre-warm the image with the requested model
+# Start a background server, pull the model, then stop it
+RUN set -euo pipefail; \
+    (ollama serve & echo $! > /tmp/ollama.pid); \
+    for i in $(seq 1 60); do \
+      if nc -z localhost 11434 2>/dev/null; then break; fi; \
+      sleep 1; \
+    done; \
+    ollama pull ${MODEL}; \
+    kill $(cat /tmp/ollama.pid) || true; \
+    rm -f /tmp/ollama.pid
+
+EXPOSE 11434
+
+ENTRYPOINT ["ollama", "serve"]
+

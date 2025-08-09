@@ -1,0 +1,15 @@
+# Base Ollama image with persistent model cache
+# Models directory will be mounted/baked at /models
+
+FROM ollama/ollama:latest
+
+ENV OLLAMA_MODELS=/models \
+    OLLAMA_HOST=0.0.0.0
+
+RUN mkdir -p /models && \
+    mkdir -p /var/lib/ollama
+
+EXPOSE 11434
+
+ENTRYPOINT ["ollama", "serve"]
+

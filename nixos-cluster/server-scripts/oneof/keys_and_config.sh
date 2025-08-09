@@ -34,7 +34,7 @@ fi
 # ─ 2 – Prepare ~/.ssh  (private keys) ───────────────────────────────────────
 sudo install -d -m 700 ~/.ssh
 
-# ─ 3 – Public-key dir  ../configuration/keys  (relative to this script) ────
+# ─ 3 – Public-key dir  /var/lib/nixos-cluster/keys ────
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 KEYS_DIR="/var/lib/nixos-cluster/keys"
 sudo install -d -m 755 "$KEYS_DIR"

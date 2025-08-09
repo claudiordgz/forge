@@ -1,32 +1,18 @@
 { config, lib, pkgs, inputs, ... }:
 
 let
-  # Path to the dashboard manifest file
-  dashboardManifestFile = ../../../kubernetes/dashboard.yaml;
+  dashboardManifestFile = ../../../kubernetes/dashboard/dashboard.yaml;
+  dashboardIngressManifestFile = ../../../kubernetes/dashboard/dashboard-ingress.yaml;
+  dashboardCertificateManifestFile = ../../../kubernetes/dashboard/dashboard-certificate.yaml;
+  letsencryptIssuerManifestFile = ../../../kubernetes/dashboard/letsencrypt-issuer.yaml;
 
-  # Path to the dashboard ingress manifest
-  dashboardIngressManifestFile = ../../../kubernetes/dashboard-ingress.yaml;
+  longhornManifestFile = ../../../kubernetes/longhorn/longhorn.yaml;
+  longhornIngressManifestFile = ../../../kubernetes/longhorn/longhorn-ingress.yaml;
 
-  # Path to Let's Encrypt issuer manifest file
-  letsencryptIssuerManifestFile = ../../../kubernetes/letsencrypt-issuer.yaml;
-
-  # Path to dashboard certificate manifest file
-  dashboardCertificateManifestFile = ../../../kubernetes/dashboard-certificate.yaml;
-
-  # Path to Longhorn manifest file
-  longhornManifestFile = ../../../kubernetes/longhorn.yaml;
-
-  # Longhorn UI will be exposed via Ingress through MetalLB; NodePort no longer used
-
-  # Path to Longhorn ingress
-  longhornIngressManifestFile = ../../../kubernetes/longhorn-ingress.yaml;
-
-  # MetalLB manifests
   metallbManifestUrl = "https://raw.githubusercontent.com/metallb/metallb/v0.14.5/config/manifests/metallb-native.yaml";
-  metallbIPAddressPoolFile = ../../../kubernetes/metallb-ipaddresspool.yaml;
-  metallbL2AdvertisementFile = ../../../kubernetes/metallb-l2advertisement.yaml;
+  metallbIPAddressPoolFile = ../../../kubernetes/metallb/ipaddresspool.yaml;
+  metallbL2AdvertisementFile = ../../../kubernetes/metallb/l2advertisement.yaml;
 
-  # Cloudflared (Cloudflare Tunnel) manifests
   cloudflaredDeploymentFile = ../../../kubernetes/cloudflared/deployment.yaml;
   harborValuesFile = ../../../kubernetes/registry/harbor-values.yaml;
 

@@ -8,21 +8,41 @@ KCONF="/etc/rancher/k3s/k3s.yaml"
 export KUBECONFIG="$KCONF"
 
 ROOT_DIR="/root/forge/nixos-cluster"
-SC_NOBACKUP="$ROOT_DIR/kubernetes/longhorn-storageclass-nobackup.yaml"
-BT_DEFAULT="$ROOT_DIR/kubernetes/longhorn-backuptarget-default.yaml"
+SC_NOBACKUP="$ROOT_DIR/kubernetes/longhorn/longhorn-storageclass-nobackup.yaml"
+BT_DEFAULT="$ROOT_DIR/kubernetes/longhorn/longhorn-backuptarget-default.yaml"
 HARBOR_VALUES="$ROOT_DIR/kubernetes/registry/harbor-values.yaml"
 
-echo "==> Ensuring Longhorn CRDs exist"
-if ! kubectl get crd volumes.longhorn.io >/dev/null 2>&1; then
-  kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/install/01-crd.yaml
-fi
+echo "==> Installing/refreshing Longhorn (manifests from master branch)"
+kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml
 
-echo "==> Applying default BackupTarget (if CRD present)"
-if kubectl get crd backuptargets.longhorn.io >/dev/null 2>&1; then
-  kubectl apply -f "$BT_DEFAULT" || true
-else
-  echo "WARN: backuptargets.longhorn.io CRD not found yet; continuing"
-fi
+echo "==> Waiting for Longhorn CRDs to be established (backuptargets.longhorn.io)"
+for i in $(seq 1 120); do
+  if kubectl get crd backuptargets.longhorn.io >/dev/null 2>&1; then
+    break
+  fi
+  sleep 2
+done
+kubectl get crd backuptargets.longhorn.io >/dev/null 2>&1 || {
+  echo "ERROR: backuptargets.longhorn.io CRD not available after waiting." >&2
+  exit 1
+}
+
+echo "==> Creating/Updating default BackupTarget"
+API_VER=$(kubectl get crd backuptargets.longhorn.io -o jsonpath='{.spec.versions[?(@.served==true)].name}')
+TMP_BT=$(mktemp)
+cat >"$TMP_BT" <<EOF
+apiVersion: longhorn.io/${API_VER}
+kind: BackupTarget
+metadata:
+  name: default
+  namespace: longhorn-system
+spec:
+  backupTargetURL: ''
+  credentialSecret: ''
+  pollInterval: 5m0s
+EOF
+kubectl apply -f "$TMP_BT"
+rm -f "$TMP_BT"
 
 echo "==> Applying no-backup StorageClass"
 kubectl apply -f "$SC_NOBACKUP"
