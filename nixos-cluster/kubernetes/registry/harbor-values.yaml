@@ -24,6 +24,13 @@ externalURL: http://harbor.lan.locallier.com
 existingSecret: harbor-admin
 existingSecretKey: HARBOR_ADMIN_PASSWORD
 
+# Increase front-end Nginx limits/timeouts to allow very large image pushes
+# These correspond to nginx directives client_max_body_size and proxy timeouts
+nginx:
+  proxyBodySize: "0"        # unlimited body size
+  proxyReadTimeout: 3600     # seconds
+  proxySendTimeout: 3600     # seconds
+
 # Disable Notary; enable Trivy scanner
 notary:
   enabled: false
@@ -52,7 +59,7 @@ persistence:
   persistentVolumeClaim:
     registry:
       accessMode: ReadWriteOnce
-      size: 400Gi
+      size: 750Gi
       storageClass: longhorn
     chartmuseum:
       accessMode: ReadWriteOnce
