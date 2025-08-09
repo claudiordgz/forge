@@ -33,6 +33,20 @@ in {
     autoPrune.enable = true;
   };
 
+  # Podman/Buildah/Skopeo registry configuration (also used by dockerCompat)
+  virtualisation.containers = {
+    registries = {
+      search = [ "docker.io" "ghcr.io" ];
+      insecure = [
+        "harbor.lan.locallier.com:80"
+        "10.10.10.81:80"
+        # include hostnames without port for safety
+        "harbor.lan.locallier.com"
+        "10.10.10.81"
+      ];
+    };
+  };
+
   environment.systemPackages = with pkgs; [
     podman
     podman-compose
