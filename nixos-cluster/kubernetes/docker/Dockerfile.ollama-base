@@ -1,7 +1,8 @@
 # Base Ollama image with persistent model cache
 # Models directory will be mounted/baked at /models
 
-FROM ollama/ollama:latest
+# Force amd64 base to avoid arm64 pulls on hosts that default to arm64
+FROM --platform=linux/amd64 ollama/ollama:latest
 
 ENV OLLAMA_MODELS=/models \
     OLLAMA_HOST=0.0.0.0
