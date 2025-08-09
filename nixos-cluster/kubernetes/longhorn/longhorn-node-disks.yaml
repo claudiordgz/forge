@@ -20,13 +20,13 @@ spec:
     extra-disk-1:
       path: /mnt/longhorn1
       allowScheduling: true
-      storageReserved: 10Gi
+      storageReserved: 10737418240
       tags: [fast]
       diskType: filesystem
     os-share-1:
       path: /var/lib/longhorn-os1
       allowScheduling: true
-      storageReserved: 250Gi
+      storageReserved: 268435456000
       tags: [os]
       diskType: filesystem
 ---
@@ -41,13 +41,13 @@ spec:
     extra-disk-1:
       path: /mnt/longhorn1
       allowScheduling: true
-      storageReserved: 10Gi
+      storageReserved: 10737418240
       tags: [fast]
       diskType: filesystem
     os-share-1:
       path: /var/lib/longhorn-os1
       allowScheduling: true
-      storageReserved: 250Gi
+      storageReserved: 268435456000
       tags: [os]
       diskType: filesystem
 ---
@@ -62,13 +62,13 @@ spec:
     extra-disk-1:
       path: /mnt/longhorn1
       allowScheduling: true
-      storageReserved: 10Gi
+      storageReserved: 10737418240
       tags: [fast]
       diskType: filesystem
     os-share-1:
       path: /var/lib/longhorn-os1
       allowScheduling: true
-      storageReserved: 250Gi
+      storageReserved: 268435456000
       tags: [os]
       diskType: filesystem
 
