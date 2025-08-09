@@ -135,20 +135,6 @@ save_cloudflare_tunnel_token() {
     echo "✅ Saved Cloudflare Tunnel token to $node"
 }
 
-create_or_update_cloudflare_api_secret_from_node_file() {
-    local node=$1
-    local remote_file=$2
-    echo "🔐 Creating/Updating Cloudflare API token Secret on $node..."
-    ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no "$SSH_USER@$node" "\
-      set -e; \
-      if [ ! -f '$remote_file' ]; then echo 'Missing file: $remote_file' >&2; exit 1; fi; \
-      kubectl create ns cert-manager >/dev/null 2>&1 || true; \
-      kubectl -n cert-manager create secret generic cloudflare-api-token-secret \
-        --from-file=api-token=$remote_file \
-        --dry-run=client -o yaml | kubectl apply -f -"
-    echo "✅ Cloudflare API token Secret applied on $node"
-}
-
 create_or_update_cloudflared_token_secret_from_node_file() {
     local node=$1
     local remote_file=$2
@@ -226,7 +212,6 @@ main() {
         # Fetch required secrets via a compact loop
         echo "Fetching tokens..."
         SECRETS=(
-          "cloudflare-locallier.com-token:CLOUDFLARE_API_TOKEN:Cloudflare API token"
           "cloudflare-tunnel-token:CLOUDFLARE_TUNNEL_TOKEN:Cloudflare Tunnel token"
           "harbor-admin-password:HARBOR_ADMIN_PASSWORD:Harbor admin password"
         )
@@ -238,9 +223,7 @@ main() {
         sign_in_to_1password
     fi
     
-    save_cloudflare_api_token "vega" "$CLOUDFLARE_API_TOKEN"
     save_cloudflare_tunnel_token "vega" "$CLOUDFLARE_TUNNEL_TOKEN"
-    create_or_update_cloudflare_api_secret_from_node_file "vega" "/var/lib/nixos-cluster/keys/cloudflare-api-token"
     create_or_update_cloudflared_token_secret_from_node_file "vega" "/var/lib/nixos-cluster/keys/cloudflared/tunnel-token"
 
     # Write Harbor admin password to a local temp file and apply secret on vega

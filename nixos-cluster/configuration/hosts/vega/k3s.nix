@@ -1,38 +1,20 @@
 { config, lib, pkgs, inputs, ... }:
 
 let
-  dashboardManifestFile = ../../../kubernetes/dashboard/dashboard.yaml;
-  dashboardIngressManifestFile = ../../../kubernetes/dashboard/dashboard-ingress.yaml;
-  dashboardCertificateManifestFile = ../../../kubernetes/dashboard/dashboard-certificate.yaml;
-  letsencryptIssuerManifestFile = ../../../kubernetes/dashboard/letsencrypt-issuer.yaml;
-
-  longhornManifestFile = ../../../kubernetes/longhorn/longhorn.yaml;
-  longhornIngressManifestFile = ../../../kubernetes/longhorn/longhorn-ingress.yaml;
+  # Longhorn
+  longhornManifestUrl = "https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml";
 
   metallbManifestUrl = "https://raw.githubusercontent.com/metallb/metallb/v0.14.5/config/manifests/metallb-native.yaml";
   metallbIPAddressPoolFile = ../../../kubernetes/metallb/ipaddresspool.yaml;
   metallbL2AdvertisementFile = ../../../kubernetes/metallb/l2advertisement.yaml;
 
   cloudflaredDeploymentFile = ../../../kubernetes/cloudflared/deployment.yaml;
+  cloudflaredDashboardConfig = ../../../kubernetes/cloudflared/hosts-dashboard.yaml;
   harborValuesFile = ../../../kubernetes/registry/harbor-values.yaml;
 
   # Path to the keys directory from the flake input
   keysDir = inputs.keys;
 in {
-  # Deploy Kubernetes Dashboard automatically when k3s starts
-  systemd.services.k3s-dashboard = {
-    description = "Deploy Kubernetes Dashboard";
-    wantedBy = [ "k3s.service" ];
-    after = [ "k3s.service" ];
-    restartTriggers = [ dashboardManifestFile ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
-      ExecStart = "${pkgs.kubectl}/bin/kubectl apply --server-side --force-conflicts -f ${dashboardManifestFile}";
-    };
-  };
-
   # Deploy cert-manager automatically when k3s starts
   systemd.services.k3s-cert-manager = {
     description = "Deploy cert-manager";
@@ -117,6 +99,9 @@ in {
           exit 0
         fi
 
+        # Apply dashboard hostname mapping (configmap)
+        kubectl apply -f ${cloudflaredDashboardConfig}
+
         # Apply Deployment (token-based)
         kubectl apply -f ${cloudflaredDeploymentFile}
       '';
@@ -183,49 +168,7 @@ in {
     };
   };
 
-  # Deploy Let's Encrypt issuer after nginx-ingress
-  systemd.services.k3s-letsencrypt-issuer = {
-    description = "Deploy Let's Encrypt ClusterIssuer";
-    wantedBy = [ "k3s-nginx-ingress.service" ];
-    after = [ "k3s-nginx-ingress.service" ];
-    restartTriggers = [ letsencryptIssuerManifestFile ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
-      ExecStart = "${pkgs.kubectl}/bin/kubectl apply --server-side --force-conflicts -f ${letsencryptIssuerManifestFile}";
-      # ExecStop removed on purpose to avoid Let's Encrypt issuer being torn down
-    };
-  };
-
-  # Deploy dashboard certificate after Let's Encrypt issuer and dashboard
-  systemd.services.k3s-dashboard-certificate = {
-    description = "Deploy Dashboard Certificate";
-    wantedBy = [ "k3s-letsencrypt-issuer.service" ];
-    after = [ "k3s-letsencrypt-issuer.service" "k3s-dashboard.service" ];
-    restartTriggers = [ dashboardCertificateManifestFile ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
-      ExecStart = "${pkgs.kubectl}/bin/kubectl apply --server-side --force-conflicts -f ${dashboardCertificateManifestFile}";
-      # ExecStop removed on purpose to avoid Let's Encrypt issuer being torn down
-    };
-  };
-
-  # Deploy dashboard ingress after certificate/issuer and nginx-ingress
-  systemd.services.k3s-dashboard-ingress = {
-    description = "Deploy Kubernetes Dashboard Ingress";
-    wantedBy = [ "k3s.service" ];
-    after = [ "k3s-letsencrypt-issuer.service" "k3s-dashboard.service" "k3s-nginx-ingress.service" ];
-    restartTriggers = [ dashboardIngressManifestFile ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
-      ExecStart = "${pkgs.kubectl}/bin/kubectl apply --server-side --force-conflicts -f ${dashboardIngressManifestFile}";
-    };
-  };
+  # Dashboard resources removed (managed externally or via Tunnel)
 
   # Deploy Longhorn distributed storage system
   systemd.services.k3s-longhorn = {
@@ -236,24 +179,8 @@ in {
       Type = "oneshot";
       RemainAfterExit = true;
       Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
-      ExecStart = "${pkgs.kubectl}/bin/kubectl apply --server-side --force-conflicts -f https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml";
+      ExecStart = "${pkgs.kubectl}/bin/kubectl apply --server-side --force-conflicts -f ${longhornManifestUrl}";
       # ExecStop removed on purpose to avoid tearing down CRDs/webhooks
-    };
-  };
-
-  # Removed NodePort configuration for Longhorn; ingress is used instead
-
-  # Longhorn UI Ingress (after nginx and cert-manager)
-  systemd.services.k3s-longhorn-ingress = {
-    description = "Deploy Longhorn UI Ingress";
-    wantedBy = [ "k3s.service" ];
-    after = [ "k3s-longhorn.service" "k3s-nginx-ingress.service" "k3s-letsencrypt-issuer.service" ];
-    restartTriggers = [ longhornIngressManifestFile ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      Environment = [ "KUBECONFIG=/etc/rancher/k3s/k3s.yaml" ];
-      ExecStart = "${pkgs.kubectl}/bin/kubectl apply --server-side --force-conflicts -f ${longhornIngressManifestFile}";
     };
   };
 

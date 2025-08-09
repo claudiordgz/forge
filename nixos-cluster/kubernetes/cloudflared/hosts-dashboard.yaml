@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflared-dashboard-host
+  namespace: cloudflared
+data:
+  dashboard-origin: |
+    hostname: ui.locallier.com
+    service: https://kubernetes-dashboard.kubernetes-dashboard.svc.cluster.local:443
+    originRequest:
+      httpHostHeader: ui.locallier.com
+      originServerName: ui.locallier.com
+      noTLSVerify: true
+
