@@ -1,8 +1,9 @@
 # Build a per-model, per-GPU image on top of the Ollama base
 # The build pre-pulls the model to avoid cold-starts
 
+ARG TARGETPLATFORM
 ARG BASE_IMAGE=ollama/ollama:latest
-FROM ${BASE_IMAGE}
+FROM --platform=$TARGETPLATFORM ${BASE_IMAGE}
 
 ARG MODEL
 ARG GPU_ARCH
@@ -22,11 +23,15 @@ RUN mkdir -p /models
 
 # Pre-warm the image with the requested model (POSIX sh)
 # Start a background server, give it a moment, pull the model, then stop it
-RUN (ollama serve & echo $! > /tmp/ollama.pid); \
+# Avoid persisting Ollama's identity key by using a temp HOME and removing any
+# leftover ~/.ollama directory before the layer commits
+RUN export HOME=/tmp; \
+    (ollama serve & echo $! > /tmp/ollama.pid); \
     sleep 120; \
     ollama pull ${MODEL} || (sleep 10; ollama pull ${MODEL}); \
     kill $(cat /tmp/ollama.pid) || true; \
-    rm -f /tmp/ollama.pid
+    rm -f /tmp/ollama.pid; \
+    rm -rf /tmp/.ollama /root/.ollama
 
 EXPOSE 11434
 

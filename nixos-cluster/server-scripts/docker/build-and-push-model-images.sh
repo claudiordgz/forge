@@ -5,33 +5,33 @@ set -euo pipefail
 # Note: ensure Docker marks this as an insecure registry or uses a trusted cert
 HARBOR_ENDPOINT=harbor.lan.locallier.com:80
 IMAGE_TAG=${IMAGE_TAG:-v1}
-GPU=${GPU:-3090}
 
+GPUS=("3090" "3080" "3060" "2080")
+MODELS=("gpt-oss" "gemma3" "qwen3")
 REG_PREFIX="$HARBOR_ENDPOINT/ai"
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 
-echo "==> Building baseline image for GPU=$GPU, tag=$IMAGE_TAG"
-docker build \
-  -f "$ROOT_DIR/kubernetes/docker/Dockerfile.ollama-base" \
-  -t "$REG_PREFIX/ollama-base-$GPU:$IMAGE_TAG" \
-  "$ROOT_DIR"
-
-docker push "$REG_PREFIX/ollama-base-$GPU:$IMAGE_TAG"
-
-MODELS=("gpt-oss" "gemma3" "qwen3")
-
-for MODEL in "${MODELS[@]}"; do
-  echo "==> Building model=$MODEL for GPU=$GPU"
-  docker buildx build \
-    --platform linux/amd64,linux/arm64 \
-    -f "$ROOT_DIR/kubernetes/docker/Dockerfile.model" \
-    --build-arg MODEL="$MODEL" \
-    --build-arg GPU_ARCH="$GPU" \
-    -t "$REG_PREFIX/ollama-$MODEL-$GPU:$IMAGE_TAG" \
-    --load \
+for GPU in "${GPUS[@]}"; do
+  echo "==> Building baseline image for GPU=$GPU, tag=$IMAGE_TAG"
+  docker build \
+    -f "$ROOT_DIR/kubernetes/docker/Dockerfile.ollama-base" \
+    -t "$REG_PREFIX/ollama-base-$GPU:$IMAGE_TAG" \
     "$ROOT_DIR"
 
-  docker push "$REG_PREFIX/ollama-$MODEL-$GPU:$IMAGE_TAG"
+  docker push "$REG_PREFIX/ollama-base-$GPU:$IMAGE_TAG"
+  for MODEL in "${MODELS[@]}"; do
+    echo "==> Building model=$MODEL for GPU=$GPU"
+    docker buildx build \
+      --platform linux/amd64 \
+      -f "$ROOT_DIR/kubernetes/docker/Dockerfile.model" \
+      --build-arg MODEL="$MODEL" \
+      --build-arg GPU_ARCH="$GPU" \
+      -t "$REG_PREFIX/ollama-$MODEL-$GPU:$IMAGE_TAG" \
+      --load \
+      "$ROOT_DIR"
+
+    docker push "$REG_PREFIX/ollama-$MODEL-$GPU:$IMAGE_TAG"
+  done
 done
 
 echo "All images pushed to $REG_PREFIX with tag $IMAGE_TAG"
