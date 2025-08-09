@@ -94,3 +94,96 @@ If you prefer to run the steps manually, the original process is:
 7. Configure SSH and clone repository
 8. Run `./server-scripts/keys_and_config.sh <node-name>`
 9. Setup flake: `cd configuration && sudo nixos-rebuild switch --flake .#<node-name>`
+
+## Harbor registry (HTTP) setup and troubleshooting
+
+Harbor runs in namespace `ai` and is exposed via LoadBalancer `10.10.10.81:80` (`harbor.lan.locallier.com:80`). This section captures the working setup and recovery steps.
+
+- Docker Desktop (macOS) config:
+  - Settings → Docker Engine → use valid JSON and add insecure registries and lower concurrency for large pushes:
+
+    ```json
+    {
+      "builder": {"gc": {"defaultKeepStorage": "20GB", "enabled": true}},
+      "insecure-registries": ["harbor.lan.locallier.com:80", "10.10.10.81:80", "harbor.lan.locallier.com", "10.10.10.81"],
+      "max-concurrent-uploads": 1
+    }
+    ```
+
+- Hard restart Docker Desktop when the engine is stuck:
+
+  ```bash
+  osascript -e 'quit app "Docker"' || true
+  pkill -TERM -f "Docker Desktop|com.docker.backend|com.docker.build|Docker" || true
+  sleep 2
+  pkill -9 -f "Docker Desktop|com.docker.backend|com.docker.build|Docker" || true
+  rm -f ~/.docker/run/docker.sock
+  open -a "Docker"
+  ```
+
+  Verify after start:
+
+  ```bash
+  docker context use desktop-linux || true
+  docker info | sed -n '/Insecure Registries/,+12p'
+  curl -I http://10.10.10.81/v2/   # expect 401
+  ```
+
+- Harbor Helm values for large pushes (already in repo):
+
+  `nixos-cluster/kubernetes/registry/harbor-values.yaml` includes:
+
+  ```yaml
+  nginx:
+    proxyBodySize: "0"
+    proxyReadTimeout: 3600
+    proxySendTimeout: 3600
+  ```
+
+  Apply/upgrade Harbor:
+
+  ```bash
+  helm repo add harbor https://helm.goharbor.io || true
+  helm upgrade --install harbor harbor/harbor -n ai -f nixos-cluster/kubernetes/registry/harbor-values.yaml --wait
+  ```
+
+- PVC sizing rule:
+  - You cannot shrink `harbor-registry` PVC. If upgrade fails with a Forbidden shrink error, set the size in values to ≥ current size.
+
+  ```bash
+  kubectl -n ai get pvc harbor-registry -o custom-columns=NAME:.metadata.name,REQ:.spec.resources.requests.storage,CAP:.status.capacity.storage
+  ```
+
+- Build and push images to Harbor over HTTP:
+  - Classic docker path (avoids BuildKit HTTPS issue):
+
+    ```bash
+    CTX=nixos-cluster/kubernetes/docker
+    docker buildx build --platform linux/amd64 -f "$CTX/Dockerfile.model" \
+      --build-arg MODEL=gpt-oss --build-arg GPU_ARCH=3080 \
+      -t harbor.lan.locallier.com:80/ai/ollama-gpt-oss-3080:v1 \
+      --load "$CTX"
+    docker push harbor.lan.locallier.com:80/ai/ollama-gpt-oss-3080:v1
+    ```
+
+  - Or configure BuildKit for HTTP:
+
+    ```toml
+    # ~/.docker/buildkitd.toml
+    [registry."harbor.lan.locallier.com:80"]
+      http = true
+      insecure = true
+      capabilities = ["pull", "resolve", "push"]
+    [registry."10.10.10.81:80"]
+      http = true
+      insecure = true
+      capabilities = ["pull", "resolve", "push"]
+    ```
+
+    ```bash
+    docker buildx create --name harbor-builder --driver docker-container --use --config ~/.docker/buildkitd.toml
+    docker buildx inspect --bootstrap
+    ```
+
+- Multi-arch note:
+  - `linux/arm64` images won’t run on x64/amd64 nodes (without emulation). Prefer amd64 or multi‑arch builds when targeting the cluster.
